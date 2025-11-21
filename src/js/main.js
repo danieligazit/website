@@ -269,9 +269,9 @@ let currentSimSpeed = 0.0;
 let lastInteractionTime = 0;
 let isInteracting = false;
 let targetFocus = 300.0;
-let targetAperture = 5.0;
+let targetAperture = 3.5;
 let currentFocus = 300.0;
-let currentAperture = 5.0;
+let currentAperture = 3.5;
 
 // UI Elements
 const elValFocus = document.getElementById('val-focus');
@@ -315,8 +315,8 @@ document.addEventListener('mousemove', (e) => {
     const nx = e.clientX / window.innerWidth;
     const ny = e.clientY / window.innerHeight;
     
-    targetFocus = 100.0 + (nx * 500.0);
-    targetAperture = ny * 10.0;
+    targetFocus = 150.0 + (nx * 400.0);
+    targetAperture = 3.5 + (ny * 3.0);
     
     lastInteractionTime = performance.now();
     isInteracting = true;
