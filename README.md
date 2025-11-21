@@ -1,15 +1,16 @@
-# Strange Attractors Portfolio
+# Alexei Void Portfolio
 
-A stunning WebGL portfolio featuring GPU-accelerated particle systems, strange attractors, and real-time physics simulations. Built with Three.js and GPGPU computation for smooth, performant generative art.
+A stunning single-page WebGL portfolio featuring GPU-accelerated particle systems, strange attractors, and real-time black hole physics. Built with Three.js and GPGPU computation for smooth, performant generative art.
 
 ## ✨ Features
 
+- **Single Page Application**: Seamless navigation between different simulations with no page reloads
 - **GPU-Accelerated Particle Systems**: Millions of particles simulated in real-time using GPU computation
-- **Multiple Strange Attractors**: 
-  - Thomas Attractor (smooth, ribbon-like flows)
-  - Bedhead Attractor (tangled, industrial patterns)
-  - Fractal Dream (symmetric, alien structures)
-  - Event Horizon (black hole physics with accretion disk)
+- **Multiple Simulation Modes**:
+  - **Homepage**: Thomas Attractor (smooth, ribbon-like flows)
+  - **Selected Works**: Bedhead Attractor (tangled, industrial patterns)
+  - **Research**: Fractal Dream Attractor (symmetric, alien structures)
+  - **Contact**: Thomas Attractor (same as homepage)
 - **Interactive Camera Effects**: Dynamic depth of field and focus control via mouse movement
 - **Hot Reload Development**: Instant updates as you save files
 - **Modern Build Pipeline**: Vite for lightning-fast builds and optimal production bundles
@@ -38,7 +39,7 @@ npm run dev
 
 The site will automatically open in your browser at `http://localhost:3000`
 
-Any changes you make to the source files will instantly update in the browser!
+Any changes you make to the source files will instantly update in the browser - **no page reloads needed**!
 
 ### Build for Production
 
@@ -59,29 +60,38 @@ npm run preview
 ```
 website/
 ├── src/
-│   ├── index.html           # Main attractors page
-│   ├── horizon.html         # Event horizon black hole page
+│   ├── index.html           # Single-page application
 │   ├── styles/
 │   │   └── main.css         # Global styles
 │   └── js/
-│       ├── attractors.js    # Main strange attractors simulation
-│       └── horizon.js       # Black hole singularity simulation
+│       └── main.js          # Unified simulation engine
 ├── package.json
 ├── vite.config.js           # Vite configuration
 └── README.md
 ```
 
-## 🎮 Interactive Features
+## 🎮 Simulation Modes
 
-### Main Page (Strange Attractors)
-- **Mouse Movement**: Controls focus distance and aperture (depth of field)
-- **Navigation Links**: Switch between different attractor equations in real-time
-- **Logo Click**: Returns to the default Thomas attractor
+### Homepage - Thomas Attractor
+- **Visual**: Smooth, ribbon-like particle flows
+- **Interaction**: Mouse X controls focus distance, Y controls aperture (depth of field)
+- **Behavior**: Particles freeze when mouse stops moving
+- **Colors**: Blue to white to gold gradient
 
-### Event Horizon Page
-- **Mouse Movement**: Controls camera angle and accelerates time
-- **Black Hole Physics**: Particles orbit and fall into the singularity
-- **Automatic Respawn**: Particles regenerate at the accretion disk outer edge
+### Selected Works - Bedhead Attractor
+- **Visual**: Tangled, industrial particle patterns
+- **Interaction**: Mouse X controls focus distance, Y controls aperture (depth of field)
+- **Behavior**: Particles freeze when mouse stops moving
+
+### Research - Fractal Dream Attractor
+- **Visual**: Symmetric, alien geometric structures
+- **Interaction**: Mouse X controls focus distance, Y controls aperture
+- **Behavior**: Particles freeze when mouse stops moving
+
+### Contact - Thomas Attractor
+- **Visual**: Same as homepage - smooth, ribbon-like particle flows
+- **Interaction**: Mouse X controls focus distance, Y controls aperture
+- **Behavior**: Particles freeze when mouse stops moving
 
 ## 🛠 Technology Stack
 
@@ -94,21 +104,22 @@ website/
 
 ### Adjusting Particle Count
 
-Edit the configuration constants in `src/js/attractors.js` or `src/js/horizon.js`:
+Edit the configuration constants in `src/js/main.js`:
 
 ```javascript
-const WIDTH = 600;           // Grid size (WIDTH × WIDTH particles)
+const WIDTH = 550;           // Grid size (WIDTH × WIDTH particles)
 const SUB_PARTICLES = 5;     // Particles per grid point
 ```
 
 ⚠️ **Note**: Higher values create more particles but require more GPU power.
 
-### Adding New Attractors
+### Adding New Simulation Modes
 
-1. Add new attractor equations in the compute shader's `main()` function
-2. Create a new mode case (e.g., `uMode == 3`)
-3. Add a navigation handler in the event listeners section
-4. Adjust the scale correction in the vertex shader
+1. Add a new mode number in the `computeShaderPosition` shader
+2. Define the physics equations for your mode
+3. Add vertex shader projection logic for visualization
+4. Update the `modes` object with UI configuration
+5. Add a navigation button and event listener
 
 ### Styling
 
@@ -120,7 +131,7 @@ Modify `src/styles/main.css` to customize:
 ## 📊 Performance Tips
 
 - **Reduce particle count** on lower-end GPUs
-- **Disable depth of field** by setting `uAperture` to 0
+- **Disable depth of field** by setting aperture to 0
 - **Lower pixel ratio** in renderer setup for better FPS
 - **Use Chrome/Edge** for best WebGL performance
 
@@ -131,6 +142,15 @@ Modify `src/styles/main.css` to customize:
 - Safari (limited WebGL support)
 
 WebGL 2.0 and GPGPU compute shaders required.
+
+## 🎯 Navigation
+
+- **Click "Alexei Void" logo**: Return to homepage (Thomas Attractor)
+- **Selected Works link**: Switch to Bedhead Attractor
+- **Research link**: Switch to Fractal Dream Attractor
+- **Contact link**: Same as homepage (Thomas Attractor)
+
+All transitions happen instantly with no page reload!
 
 ## 📝 License
 
@@ -144,5 +164,4 @@ MIT License - feel free to use this for your own portfolio or projects!
 
 ---
 
-**Enjoy exploring the strange attractors!** 🌌✨
-
+**Explore the intersection of art, mathematics, and code** 🌌✨

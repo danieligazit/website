@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Artist Portfolio | Strange Attractors</title>
+    <title>Alexei Void | Algorithmic Composition</title>
     <link rel="stylesheet" href="./styles/main.css">
 </head>
 <body>
@@ -16,21 +16,20 @@
     <div class="ui-layer">
         <header>
             <div>
-                <h1 id="logo-btn">Alexei Void</h1>
+                <h1 id="logo-btn" style="cursor: pointer;">Alexei Void</h1>
                 <div class="subtitle">Algorithmic Composition & <br> Generative Systems</div>
             </div>
             <nav>
                 <ul>
                     <li><a id="nav-works">Selected Works</a></li>
                     <li><a id="nav-research">Research</a></li>
-                    <li><a id="nav-performances">Performances</a></li>
-                    <li><a href="horizon.html">Event Horizon →</a></li>
+                    <li><a id="nav-contact">Contact</a></li>
                 </ul>
             </nav>
         </header>
 
         <div class="data-display">
-            <div>SYSTEM: <span class="value">MULTI-ATTRACTOR</span></div>
+            <div>SYSTEM: <span class="value" id="val-system">MULTI-ATTRACTOR</span></div>
             <div>EQUATION: <span class="value" id="val-eq">THOMAS</span></div>
             <div>STATUS: <span class="value" id="val-status">IDLE</span></div>
             <div>FOCUS: <span class="value" id="val-focus">0</span></div>
@@ -38,12 +37,11 @@
         </div>
 
         <div class="interaction-hint">
-            <div class="hint-text">NAVIGATE TO SWITCH REALITIES</div>
+            <div class="hint-text" id="hint-text">MOUSE OVER TO ACCELERATE TIME</div>
             <div class="track-name" id="track-title">HOME.BASE</div>
         </div>
     </div>
 
-    <script type="module" src="./js/attractors.js"></script>
+    <script type="module" src="./js/main.js"></script>
 </body>
 </html>
-
