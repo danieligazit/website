@@ -28,7 +28,7 @@ const gpuCompute = new GPUComputationRenderer(WIDTH, WIDTH, renderer);
 const computeShaderPosition = `
     uniform float uTime;
     uniform float uSpeed;
-    uniform int uMode; // 0:Thomas, 1:Bedhead, 2:FractalDream
+    uniform int uMode; // 0:Thomas, 1:Pickover, 2:FractalDream
     
     float rand(vec2 co){
         return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
@@ -47,7 +47,6 @@ const computeShaderPosition = `
         
         // Params for attractors
         float a = 1.2; float b = 0.19;
-        if(uMode == 1) { a = 0.06; b = 0.98; }
 
         float dx = 0.0; float dy = 0.0; float dz = 0.0;
 
@@ -59,13 +58,16 @@ const computeShaderPosition = `
             dy = sin(z * a + w) - (b * y);
             dz = sin(x * a + w) - (b * z);
         } 
-        else if(uMode == 1) { // Bedhead
-            float nx = sin(x * y / b) * y + cos(a * x - y + w);
-            float ny = x + sin(y + w) / b;
-            float nz = sin(x * 0.5 + w);
-            dx = (nx - x) * 0.5;
-            dy = (ny - y) * 0.5;
-            dz = (nz - z) * 0.5;
+        else if(uMode == 1) { // Pickover (Popcorn)
+            a = -0.05; b = 0.1;
+            float c = 1.0;
+            float h = 0.5;
+            float nx = x - h * sin(y + tan(c * y));
+            float ny = y - h * sin(x + tan(c * x));
+            float nz = z - h * sin(x + tan(c * x)) * 0.5 - h * sin(y + tan(c * y)) * 0.5;
+            dx = (nx - x) * 10.0;
+            dy = (ny - y) * 10.0;
+            dz = (nz - z) * 10.0;
         } else if(uMode == 2) { // Fractal Dream
             a = -1.4; b = 1.6;
             float c = 1.0; float d = 0.7;
@@ -83,12 +85,12 @@ const computeShaderPosition = `
 
         // Bounds check
         float limit = 60.0;
-        if(uMode == 1) limit = 10.0;
+        if(uMode == 1) limit = 15.0;
         if(uMode == 2) limit = 15.0;
 
         if( length(vec3(x,y,z)) > limit ) {
             vec2 seed = uv + vec2(uTime, uTime);
-            float scale = (uMode == 0) ? 10.0 : 0.1;
+            float scale = (uMode == 0) ? 10.0 : ((uMode == 1) ? 6.0 : 0.1);
             x = (rand(seed) - 0.5) * scale;
             y = (rand(seed + 1.0) - 0.5) * scale;
             z = (rand(seed + 2.0) - 0.5) * scale;
@@ -179,7 +181,7 @@ const visualMaterial = new THREE.ShaderMaterial({
             
             // Scale correction
             float scale = 15.0;
-            if(uMode == 1) scale = 60.0;
+            if(uMode == 1) scale = 40.0;
             if(uMode == 2) scale = 35.0;
             
             vec3 visualPos = pos * scale;
@@ -264,7 +266,7 @@ const particleSystem = new THREE.Points(visualGeometry, visualMaterial);
 scene.add(particleSystem);
 
 // State
-let currentMode = 0; // 0: Thomas (Homepage), 1: Bedhead, 2: FractalDream, 3: Thomas (Contact)
+let currentMode = 0; // 0: Thomas (Homepage & Contact), 1: Pickover (Works)
 let currentSimSpeed = 0.0;
 let lastInteractionTime = 0;
 let isInteracting = false;
@@ -277,39 +279,69 @@ let currentAperture = 3.5;
 const elValFocus = document.getElementById('val-focus');
 const elValAperture = document.getElementById('val-aperture');
 const elValStatus = document.getElementById('val-status');
-const elValEq = document.getElementById('val-eq');
-const elTrack = document.getElementById('track-title');
 
 elValAperture.innerText = currentAperture.toFixed(2);
 
+// Router Configuration
+const routes = {
+    '/': { mode: 0 },
+    '/works': { mode: 1 },
+    '/contact': { mode: 0 }
+};
+
 // Navigation Logic
-function setAttractor(mode, name, track) {
+function setAttractor(mode, pushState = true) {
     currentMode = mode;
     
     // Update Shaders
     positionVariable.material.uniforms.uMode.value = mode;
     visualMaterial.uniforms.uMode.value = mode;
     
-    // Update UI
-    elValEq.innerText = name;
-    elTrack.innerText = track;
-    
+    // Update active nav
     document.querySelectorAll('nav a').forEach(el => el.classList.remove('active'));
+    
+    // Find and activate current nav item
+    const path = Object.keys(routes).find(p => routes[p].mode === mode);
+    
+    if (path && pushState) {
+        history.pushState({ path }, '', path);
+    }
+    
+    // Set active class based on current path
+    if (path === '/works') document.getElementById('nav-works').classList.add('active');
+    if (path === '/contact') document.getElementById('nav-contact').classList.add('active');
 }
 
-document.getElementById('logo-btn').addEventListener('click', () => setAttractor(0, 'THOMAS', 'HOME.BASE'));
+// Route to page based on URL
+function navigate(path, pushState = true) {
+    const route = routes[path] || routes['/'];
+    setAttractor(route.mode, pushState);
+}
+
+// Handle browser back/forward
+window.addEventListener('popstate', (e) => {
+    const path = window.location.pathname;
+    navigate(path, false);
+});
+
+// Navigation Event Listeners
+document.getElementById('logo-btn').addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('/');
+});
+
 document.getElementById('nav-works').addEventListener('click', (e) => {
-    setAttractor(1, 'BEDHEAD', 'SELECTED.WORKS');
-    e.target.classList.add('active');
+    e.preventDefault();
+    navigate('/works');
 });
-document.getElementById('nav-research').addEventListener('click', (e) => {
-    setAttractor(2, 'FRACTAL-DREAM', 'RESEARCH.LAB');
-    e.target.classList.add('active');
-});
+
 document.getElementById('nav-contact').addEventListener('click', (e) => {
-    setAttractor(0, 'THOMAS', 'CONTACT');
-    e.target.classList.add('active');
+    e.preventDefault();
+    navigate('/contact');
 });
+
+// Initialize route on page load
+navigate(window.location.pathname, false);
 
 document.addEventListener('mousemove', (e) => {
     const nx = e.clientX / window.innerWidth;

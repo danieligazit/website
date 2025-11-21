@@ -60,7 +60,7 @@ h1 {
     font-size: 0.85rem;
     color: #888;
     margin-top: 0.5rem;
-    max-width: 250px;
+    white-space: nowrap;
     line-height: 1.5;
 }
 
@@ -95,9 +95,8 @@ nav a.active {
 /* === DATA DISPLAY === */
 .data-display {
     position: absolute;
-    top: 50%;
+    bottom: 2rem;
     left: 2rem;
-    transform: translateY(-50%);
     font-size: 0.7rem;
     color: #666;
     line-height: 1.6;
@@ -105,30 +104,6 @@ nav a.active {
 
 .value { 
     color: #ffffff; 
-}
-
-/* === INTERACTION HINT === */
-.interaction-hint {
-    position: absolute;
-    bottom: 2rem;
-    right: 2rem;
-    text-align: right;
-}
-
-.hint-text {
-    font-size: 0.7rem;
-    color: #666;
-    margin-bottom: 0.5rem;
-}
-
-.track-name {
-    font-size: 3rem;
-    font-weight: 100;
-    opacity: 0.9;
-    letter-spacing: -0.05em;
-    background: -webkit-linear-gradient(#fff, #444);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
 }
 
 /* === LOADER === */
