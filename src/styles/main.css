@@ -1,0 +1,159 @@
+/* === RESET === */
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+
+/* === BASE STYLES === */
+body {
+    background-color: #020204; 
+    color: #e0e0e0;
+    font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* === CANVAS CONTAINER === */
+#canvas-container {
+    position: fixed;
+    top: 0; 
+    left: 0;
+    width: 100%; 
+    height: 100%;
+    z-index: 1; 
+}
+
+/* === UI LAYER === */
+.ui-layer {
+    position: relative;
+    z-index: 10;
+    pointer-events: none;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 2rem;
+    background: radial-gradient(circle at center, transparent 50%, #000000 150%);
+}
+
+/* === HEADER === */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: auto;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 100;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: #fff;
+    cursor: pointer;
+    text-shadow: 0 0 20px rgba(255,255,255,0.3);
+}
+
+.subtitle {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 0.5rem;
+    max-width: 250px;
+    line-height: 1.5;
+}
+
+/* === NAVIGATION === */
+nav ul {
+    list-style: none;
+    text-align: right;
+}
+
+nav li { 
+    margin-bottom: 0.8rem; 
+}
+
+nav a {
+    color: #888;
+    text-decoration: none;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 0.3s;
+    border-bottom: 1px solid transparent;
+    cursor: pointer;
+}
+
+nav a:hover, 
+nav a.active {
+    color: #fff;
+    border-bottom: 1px solid #fff;
+    text-shadow: 0 0 10px #ffffff;
+}
+
+/* === DATA DISPLAY === */
+.data-display {
+    position: absolute;
+    top: 50%;
+    left: 2rem;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: #666;
+    line-height: 1.6;
+}
+
+.value { 
+    color: #ffffff; 
+}
+
+/* === INTERACTION HINT === */
+.interaction-hint {
+    position: absolute;
+    bottom: 2rem;
+    right: 2rem;
+    text-align: right;
+}
+
+.hint-text {
+    font-size: 0.7rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.track-name {
+    font-size: 3rem;
+    font-weight: 100;
+    opacity: 0.9;
+    letter-spacing: -0.05em;
+    background: -webkit-linear-gradient(#fff, #444);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* === LOADER === */
+#loader {
+    position: fixed; 
+    top: 0; 
+    left: 0;
+    width: 100%; 
+    height: 100%;
+    background: #020204;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 1s ease;
+}
+
+.loader-text { 
+    animation: blink 0.2s infinite; 
+    color: #fff; 
+}
+
+@keyframes blink { 
+    0%, 100% { opacity: 1; } 
+    50% { opacity: 0.5; } 
+}
+
