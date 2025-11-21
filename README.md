@@ -1,4 +1,4 @@
-# Alexei Void Portfolio
+# Daniel Gazit Portfolio
 
 A stunning single-page WebGL portfolio featuring GPU-accelerated particle systems, strange attractors, and real-time black hole physics. Built with Three.js and GPGPU computation for smooth, performant generative art.
 
@@ -145,7 +145,7 @@ WebGL 2.0 and GPGPU compute shaders required.
 
 ## 🎯 Navigation
 
-- **Click "Alexei Void" logo**: Return to homepage (Thomas Attractor)
+- **Click "Daniel Gazit" logo**: Return to homepage (Thomas Attractor)
 - **Selected Works link**: Switch to Bedhead Attractor
 - **Research link**: Switch to Fractal Dream Attractor
 - **Contact link**: Same as homepage (Thomas Attractor)
