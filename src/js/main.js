@@ -930,8 +930,8 @@ const animate = () => {
         const fpsError = currentFps - TARGET_FPS;
         
         // Proportional adjustment: larger error = larger adjustment
-        // The 0.002 factor controls how aggressively we adjust
-        let adjustment = fpsError * 0.002;
+        // Increased from 0.002 to 0.005 for more aggressive adjustment
+        let adjustment = fpsError * 0.005;
         
         // Asymmetric adjustment: Fast to reduce, slow to increase (more gradual particle addition)
         if (adjustment > 0) {
