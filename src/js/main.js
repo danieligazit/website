@@ -950,10 +950,12 @@ console.log('DeviceOrientationEvent available:', typeof DeviceOrientationEvent !
 let orientationBaseline = null; // Start as null, will be set on first reading
 let isDormant = true;
 const TILT_THRESHOLD = 25; // degrees - threshold to activate from dormant (increased for stability)
-const DORMANT_TIMEOUT = 500; // ms - how long to wait before going dormant (increased)
+const DORMANT_TIMEOUT = 800; // ms - how long to wait before going dormant (increased for better stability)
+const STABILITY_THRESHOLD = 5; // degrees - how stable must it be to go dormant (allows for sensor jitter)
 let lastOrientationChange = 0;
 let orientationInitialized = false;
 let lastAlpha = 0, lastBeta = 0, lastGamma = 0; // Track last values for smoothing
+let stabilityCheckValues = []; // Track recent values for stability check
 
 // Device Orientation (Mobile/Tablet)
 if (isMobileDevice && window.DeviceOrientationEvent) {
@@ -1051,6 +1053,25 @@ function startOrientationListener() {
         
         const now = performance.now();
         
+        // Add current values to stability check buffer
+        stabilityCheckValues.push({ beta, gamma, time: now });
+        // Keep only last 10 samples (roughly 300ms worth at ~30Hz sensor rate)
+        if (stabilityCheckValues.length > 10) {
+            stabilityCheckValues.shift();
+        }
+        
+        // Calculate stability: standard deviation of recent values
+        let isStable = false;
+        if (stabilityCheckValues.length >= 5) {
+            const avgBeta = stabilityCheckValues.reduce((sum, v) => sum + v.beta, 0) / stabilityCheckValues.length;
+            const avgGamma = stabilityCheckValues.reduce((sum, v) => sum + v.gamma, 0) / stabilityCheckValues.length;
+            const varianceBeta = stabilityCheckValues.reduce((sum, v) => sum + Math.pow(v.beta - avgBeta, 2), 0) / stabilityCheckValues.length;
+            const varianceGamma = stabilityCheckValues.reduce((sum, v) => sum + Math.pow(v.gamma - avgGamma, 2), 0) / stabilityCheckValues.length;
+            const stdDev = Math.sqrt(varianceBeta + varianceGamma);
+            
+            isStable = stdDev < STABILITY_THRESHOLD;
+        }
+        
         // Determine if we should be active or dormant
         if (tiltMagnitude > TILT_THRESHOLD) {
             // Active - tilting
@@ -1088,11 +1109,14 @@ function startOrientationListener() {
             
             lastInteractionTime = now;
             isInteracting = true;
-        } else if (!isDormant && (now - lastOrientationChange > DORMANT_TIMEOUT)) {
+        } else if (!isDormant && isStable && (now - lastOrientationChange > DORMANT_TIMEOUT)) {
             // Transition to dormant - save current orientation as new baseline
+            // Only if it's been stable (not jittering) for the timeout period
             isDormant = true;
             orientationBaseline = { alpha, beta, gamma };
+            stabilityCheckValues = []; // Clear stability buffer
             console.log('Went dormant, new baseline:', orientationBaseline);
+            if (statusEl) statusEl.innerText = 'DORMANT';
         }
     });
 }
