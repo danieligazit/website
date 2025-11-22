@@ -949,10 +949,11 @@ console.log('DeviceOrientationEvent available:', typeof DeviceOrientationEvent !
 // Mobile Orientation State
 let orientationBaseline = null; // Start as null, will be set on first reading
 let isDormant = true;
-const TILT_THRESHOLD = 10; // degrees - threshold to activate from dormant
-const DORMANT_TIMEOUT = 300; // ms - how long to wait before going dormant
+const TILT_THRESHOLD = 25; // degrees - threshold to activate from dormant (increased for stability)
+const DORMANT_TIMEOUT = 500; // ms - how long to wait before going dormant (increased)
 let lastOrientationChange = 0;
 let orientationInitialized = false;
+let lastAlpha = 0, lastBeta = 0, lastGamma = 0; // Track last values for smoothing
 
 // Device Orientation (Mobile/Tablet)
 if (isMobileDevice && window.DeviceOrientationEvent) {
@@ -1006,9 +1007,20 @@ function startOrientationListener() {
     if (statusEl) statusEl.innerText = 'LISTENING';
     
     window.addEventListener('deviceorientation', (e) => {
-        const alpha = e.alpha !== null ? e.alpha : 0; // 0-360
-        const beta = e.beta !== null ? e.beta : 0;   // -180 to 180
-        const gamma = e.gamma !== null ? e.gamma : 0; // -90 to 90
+        let alpha = e.alpha !== null ? e.alpha : 0; // 0-360
+        let beta = e.beta !== null ? e.beta : 0;   // -180 to 180
+        let gamma = e.gamma !== null ? e.gamma : 0; // -90 to 90
+        
+        // Apply exponential smoothing to reduce jitter (0.3 = 30% new, 70% old)
+        const smoothing = 0.3;
+        if (orientationInitialized) {
+            alpha = lastAlpha + smoothing * (alpha - lastAlpha);
+            beta = lastBeta + smoothing * (beta - lastBeta);
+            gamma = lastGamma + smoothing * (gamma - lastGamma);
+        }
+        lastAlpha = alpha;
+        lastBeta = beta;
+        lastGamma = gamma;
         
         // Initialize baseline on first reading
         if (!orientationInitialized) {
