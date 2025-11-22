@@ -196,6 +196,8 @@ body.light-mode nav a.active {
     line-height: 1.6;
     opacity: 0;
     transition: opacity 1s ease, color 0.3s ease;
+    max-height: calc(100vh - 8rem);
+    overflow-y: auto;
 }
 
 .data-display.loaded {
@@ -915,6 +917,14 @@ body.light-mode .contact-link:hover {
     
     .contact-value-row {
         width: 100%;
+    }
+    
+    .data-display {
+        font-size: 0.6rem;
+        line-height: 1.4;
+        bottom: 1rem;
+        left: 1rem;
+        max-height: calc(100vh - 4rem);
     }
 }
 

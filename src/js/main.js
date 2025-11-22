@@ -178,7 +178,8 @@ const visualMaterial = new THREE.ShaderMaterial({
         uAperture: { value: 5.0 },
         uTime: { value: 0.0 },
         uMode: { value: 0 },
-        uLightMode: { value: 0.0 } // 0 = dark, 1 = light
+        uLightMode: { value: 0.0 }, // 0 = dark, 1 = light
+        uHueShift: { value: 0.0 } // Color shift -1.0 to 1.0
     },
     vertexShader: `
         uniform sampler2D texturePosition;
@@ -240,11 +241,30 @@ const visualMaterial = new THREE.ShaderMaterial({
         uniform float uAperture;
         uniform int uMode;
         uniform float uLightMode;
+        uniform float uHueShift;
 
         varying float vDist;
         varying float vBlur;
         varying float vSeed;
         varying vec3 vPos;
+
+        // HSV to RGB conversion
+        vec3 hsv2rgb(vec3 c) {
+            vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+            vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+            return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+        }
+
+        // RGB to HSV conversion
+        vec3 rgb2hsv(vec3 c) {
+            vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+            vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+            vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+            float d = q.x - min(q.w, q.y);
+            float e = 1.0e-10;
+            return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+        }
 
         vec3 getStarColor(float t, float lightMode) {
             // Dark mode colors (for dark background)
@@ -270,8 +290,14 @@ const visualMaterial = new THREE.ShaderMaterial({
                 color3 = darkModeGold;
             }
 
-            if (t < 0.5) return mix(color1, color2, t * 2.0);
-            else return mix(color2, color3, (t - 0.5) * 2.0);
+            vec3 baseColor;
+            if (t < 0.5) baseColor = mix(color1, color2, t * 2.0);
+            else baseColor = mix(color2, color3, (t - 0.5) * 2.0);
+            
+            // Apply hue shift
+            vec3 hsv = rgb2hsv(baseColor);
+            hsv.x = fract(hsv.x + uHueShift); // Shift hue, wrap around
+            return hsv2rgb(hsv);
         }
 
         void main() {
@@ -326,8 +352,14 @@ let lastInteractionTime = 0;
 let isInteracting = false;
 let targetFocus = 300.0;
 let targetAperture = 3.5;
+let targetHueShift = 0.0;
 let currentFocus = 300.0;
 let currentAperture = 3.5;
+let currentHueShift = 0.0;
+
+// Detect if device is mobile/tablet (needed early for UI setup)
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                       (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
 
 // UI Elements
 const elValFocus = document.getElementById('val-focus');
@@ -338,6 +370,25 @@ const elValPoints = document.getElementById('val-points');
 const elValQuality = document.getElementById('val-quality');
 
 elValAperture.innerText = currentAperture.toFixed(2);
+
+// Add mobile tilt debug display (only on mobile) - insert before the invert reality button
+if (isMobileDevice) {
+    const dataDisplay = document.querySelector('.data-display');
+    const invertRealityDiv = document.querySelector('#nav-theme').parentElement;
+    
+    const tiltDebug = document.createElement('div');
+    tiltDebug.style.borderTop = '1px solid rgba(255,255,255,0.2)';
+    tiltDebug.style.paddingTop = '8px';
+    tiltDebug.style.marginTop = '8px';
+    tiltDebug.style.marginBottom = '8px';
+    tiltDebug.innerHTML = `
+        <div>ORIENT: <span class="value" id="val-orient-status">WAITING</span></div>
+        <div>TILT: <span class="value" id="val-alpha">0</span> | <span class="value" id="val-beta">0</span> | <span class="value" id="val-gamma">0</span> (<span class="value" id="val-tilt-mag">0</span>)</div>
+    `;
+    
+    // Insert before the invert reality button
+    dataDisplay.insertBefore(tiltDebug, invertRealityDiv);
+}
 
 // Router Configuration
 const routes = {
@@ -892,14 +943,24 @@ closeWorksBtn.addEventListener('click', () => closeWorksPanel(true));
 // INPUT DETECTION (Mobile vs Desktop)
 // ========================================
 
-// Detect if device is mobile/tablet
-const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                       (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+console.log('Device detection - isMobileDevice:', isMobileDevice);
+console.log('DeviceOrientationEvent available:', typeof DeviceOrientationEvent !== 'undefined');
+
+// Mobile Orientation State
+let orientationBaseline = null; // Start as null, will be set on first reading
+let isDormant = true;
+const TILT_THRESHOLD = 10; // degrees - threshold to activate from dormant
+const DORMANT_TIMEOUT = 300; // ms - how long to wait before going dormant
+let lastOrientationChange = 0;
+let orientationInitialized = false;
 
 // Device Orientation (Mobile/Tablet)
 if (isMobileDevice && window.DeviceOrientationEvent) {
+    console.log('Mobile device with orientation support detected');
+    
     // Check if iOS requires permission
     if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        console.log('iOS device - permission required');
         // iOS 13+ requires permission - we'll request it on first interaction
         let permissionGranted = false;
         
@@ -930,34 +991,97 @@ if (isMobileDevice && window.DeviceOrientationEvent) {
         document.addEventListener('touchstart', requestOnInteraction, { once: true });
     } else {
         // Android or older iOS - works without permission
+        console.log('Android or older iOS - starting listener directly');
         startOrientationListener();
     }
+} else {
+    console.log('Not mobile or no orientation support. isMobile:', isMobileDevice, 'hasAPI:', !!window.DeviceOrientationEvent);
 }
 
 function startOrientationListener() {
+    console.log('Starting device orientation listener...');
+    
+    // Update status indicator
+    const statusEl = document.getElementById('val-orient-status');
+    if (statusEl) statusEl.innerText = 'LISTENING';
+    
     window.addEventListener('deviceorientation', (e) => {
-        // beta: front-back tilt (-180 to 180)
-        // gamma: left-right tilt (-90 to 90)
-        const beta = e.beta;
-        const gamma = e.gamma;
+        const alpha = e.alpha !== null ? e.alpha : 0; // 0-360
+        const beta = e.beta !== null ? e.beta : 0;   // -180 to 180
+        const gamma = e.gamma !== null ? e.gamma : 0; // -90 to 90
         
-        if (beta === null || gamma === null) return;
+        // Initialize baseline on first reading
+        if (!orientationInitialized) {
+            orientationBaseline = { alpha, beta, gamma };
+            orientationInitialized = true;
+            console.log('Orientation baseline initialized:', orientationBaseline);
+            if (statusEl) statusEl.innerText = 'ACTIVE';
+            return;
+        }
         
-        // Normalize to 0-1 range
-        // gamma: -90 (left) to 90 (right) → 0 to 1
-        const nx = Math.max(0, Math.min(1, (gamma + 90) / 180));
+        // Calculate magnitude of tilt from baseline
+        const deltaBeta = Math.abs(beta - orientationBaseline.beta);
+        const deltaGamma = Math.abs(gamma - orientationBaseline.gamma);
+        const tiltMagnitude = Math.sqrt(deltaBeta * deltaBeta + deltaGamma * deltaGamma);
         
-        // beta: We want a reasonable range, say -90 to 90
-        // Phone flat = 0, tilted forward = positive, back = negative
-        // Normalize roughly -90 to 90 → 0 to 1
-        const normalizedBeta = Math.max(-90, Math.min(90, beta));
-        const ny = (normalizedBeta + 90) / 180;
+        // Update debug display (mobile only)
+        if (isMobileDevice) {
+            const elAlpha = document.getElementById('val-alpha');
+            const elBeta = document.getElementById('val-beta');
+            const elGamma = document.getElementById('val-gamma');
+            const elTiltMag = document.getElementById('val-tilt-mag');
+            
+            if (elAlpha) elAlpha.innerText = alpha.toFixed(1) + '°';
+            if (elBeta) elBeta.innerText = beta.toFixed(1) + '°';
+            if (elGamma) elGamma.innerText = gamma.toFixed(1) + '°';
+            if (elTiltMag) elTiltMag.innerText = tiltMagnitude.toFixed(1) + '°';
+        }
         
-        targetFocus = 150.0 + (nx * 400.0);
-        targetAperture = 8.0 - (nx * 5.0) + (ny * 1.5);
+        const now = performance.now();
         
-        lastInteractionTime = performance.now();
-        isInteracting = true;
+        // Determine if we should be active or dormant
+        if (tiltMagnitude > TILT_THRESHOLD) {
+            // Active - tilting
+            isDormant = false;
+            lastOrientationChange = now;
+            
+            // Calculate deltas from baseline (when it was dormant)
+            let alphaRawDelta = alpha - orientationBaseline.alpha;
+            // Handle alpha wraparound (0-360)
+            if (alphaRawDelta > 180) alphaRawDelta -= 360;
+            if (alphaRawDelta < -180) alphaRawDelta += 360;
+            
+            const betaDelta = beta - orientationBaseline.beta;
+            const gammaDelta = gamma - orientationBaseline.gamma;
+            
+            // Map to bounded ranges using sine waves
+            // Each completes a full cycle every 180 degrees of rotation
+            
+            // Gamma (left-right) → Focus (150-550)
+            const focusRange = 200.0; // +/- 200 from center
+            const focusCenter = 300.0;
+            const focusOscillation = focusRange * Math.sin(gammaDelta * Math.PI / 90);
+            targetFocus = focusCenter + focusOscillation;
+            
+            // Beta (front-back) → Aperture (3-8)
+            const apertureRange = 2.5; // +/- 2.5 from center
+            const apertureCenter = 5.5;
+            const apertureOscillation = apertureRange * Math.sin(betaDelta * Math.PI / 90);
+            targetAperture = apertureCenter + apertureOscillation;
+            
+            // Alpha (compass rotation) → Hue shift (-0.2 to 0.2)
+            const hueRange = 0.2;
+            const hueOscillation = hueRange * Math.sin(alphaRawDelta * Math.PI / 90);
+            targetHueShift = hueOscillation;
+            
+            lastInteractionTime = now;
+            isInteracting = true;
+        } else if (!isDormant && (now - lastOrientationChange > DORMANT_TIMEOUT)) {
+            // Transition to dormant - save current orientation as new baseline
+            isDormant = true;
+            orientationBaseline = { alpha, beta, gamma };
+            console.log('Went dormant, new baseline:', orientationBaseline);
+        }
     });
 }
 
@@ -967,9 +1091,15 @@ if (!isMobileDevice) {
         const nx = e.clientX / window.innerWidth;
         const ny = e.clientY / window.innerHeight;
         
+        // Direct mapping for desktop
+        // Focus: 150-550
         targetFocus = 150.0 + (nx * 400.0);
-        // Inverse relationship: left side (nx=0) = more bokeh, right side (nx=1) = less bokeh
+        
+        // Aperture: 3-8 with vertical influence
         targetAperture = 8.0 - (nx * 5.0) + (ny * 1.5);
+        
+        // Hue shift: -0.2 to 0.2 based on Y position
+        targetHueShift = (ny - 0.5) * 0.4; // -0.2 to 0.2
         
         lastInteractionTime = performance.now();
         isInteracting = true;
@@ -1035,6 +1165,7 @@ const animate = () => {
 
     currentFocus += (targetFocus - currentFocus) * 0.1;
     currentAperture += (targetAperture - currentAperture) * 0.1;
+    currentHueShift += (targetHueShift - currentHueShift) * 0.1;
 
     // Update UI displays
     if (elValFocus) elValFocus.innerText = currentFocus.toFixed(0);
@@ -1064,6 +1195,7 @@ const animate = () => {
     
     visualMaterial.uniforms.uFocus.value = currentFocus;
     visualMaterial.uniforms.uAperture.value = currentAperture;
+    visualMaterial.uniforms.uHueShift.value = currentHueShift;
     visualMaterial.uniforms.uTime.value = now * 0.001;
 
     gpuCompute.compute();
