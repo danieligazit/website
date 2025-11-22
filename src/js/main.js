@@ -930,8 +930,13 @@ const animate = () => {
         const fpsError = currentFps - TARGET_FPS;
         
         // Proportional adjustment: larger error = larger adjustment
-        // The 0.002 factor controls how aggressively we adjust (tune this for responsiveness)
-        const adjustment = fpsError * 0.002;
+        // The 0.002 factor controls how aggressively we adjust
+        let adjustment = fpsError * 0.002;
+        
+        // Asymmetric adjustment: Fast to reduce, slow to increase (more gradual particle addition)
+        if (adjustment > 0) {
+            adjustment *= 0.15; // Only increase at 15% speed to avoid sudden particle spawning
+        }
         
         // Apply adjustment (negative error reduces performance, positive error increases it)
         const newPerformanceLevel = Math.max(MIN_PERFORMANCE, Math.min(MAX_PERFORMANCE, performanceLevel + adjustment));
@@ -941,7 +946,6 @@ const animate = () => {
             performanceLevel = newPerformanceLevel;
             updateParticleCount();
             const direction = adjustment > 0 ? 'Increasing' : 'Reducing';
-            console.log(`Performance: ${direction} quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)}, Target: ${TARGET_FPS})`);
         }
     }
     
