@@ -1,3 +1,6 @@
+/* === GOOGLE FONTS === */
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700&display=swap');
+
 /* === RESET === */
 * { 
     margin: 0; 
@@ -46,7 +49,7 @@ body.light-mode {
 body {
     background-color: var(--bg-primary); 
     color: var(--text-secondary);
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Assistant', -apple-system, BlinkMacSystemFont, sans-serif;
     overflow: hidden;
     height: 100vh;
     width: 100vw;
@@ -358,7 +361,7 @@ body.light-mode .invert-reality:hover {
     color: var(--text-tertiary);
     padding: 0.5rem 1rem;
     font-size: 0.75rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Assistant', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     cursor: pointer;
@@ -535,7 +538,7 @@ body.light-mode .work-item {
     color: var(--text-quaternary);
     padding: 0.75rem 1.5rem;
     font-size: 0.75rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Assistant', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.15em;
     cursor: pointer;
@@ -781,7 +784,7 @@ body.light-mode .contact-link:hover {
     color: var(--text-quaternary);
     opacity: 0;
     transition: opacity 0.3s;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Assistant', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     pointer-events: none;
@@ -802,7 +805,7 @@ body.light-mode .contact-link:hover {
     padding: 1rem 1.5rem;
     border-radius: 4px;
     font-size: 0.85rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Assistant', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     opacity: 0;
@@ -856,7 +859,7 @@ body.light-mode .contact-link:hover {
     opacity: 0;
     transition: opacity 0.2s;
     white-space: nowrap;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'Assistant', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
