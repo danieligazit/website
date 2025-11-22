@@ -9,6 +9,13 @@ const SUB_PARTICLES = 8;
 const TOTAL_POINTS = PARTICLES * SUB_PARTICLES;
 const SPHERE_RADIUS = 300.0;
 
+// Performance monitoring
+let frameCount = 0;
+let lastFpsCheck = performance.now();
+let currentFps = 60;
+let performanceLevel = 1.0; // 1.0 = full quality, reduces if performance is poor
+let performanceCheckDelay = 2000; // Wait 2 seconds before first check
+
 // Scene Setup
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
@@ -890,10 +897,40 @@ document.addEventListener('mousemove', (e) => {
     isInteracting = true;
 });
 
+// Performance adjustment function
+function updateParticleCount() {
+    // Adjust draw count based on performance level
+    const targetCount = Math.floor(TOTAL_POINTS * performanceLevel);
+    visualGeometry.setDrawRange(0, targetCount);
+}
+
 // Animation Loop
 const animate = () => {
     requestAnimationFrame(animate);
     const now = performance.now();
+    
+    // FPS Monitoring and Performance Adjustment
+    frameCount++;
+    const timeSinceLastCheck = now - lastFpsCheck;
+    
+    if (timeSinceLastCheck >= 1000 && now > performanceCheckDelay) {
+        currentFps = (frameCount / timeSinceLastCheck) * 1000;
+        frameCount = 0;
+        lastFpsCheck = now;
+        
+        // Adjust performance level based on FPS
+        // Target: 30+ fps = full quality, below 30 fps = reduce quality
+        if (currentFps < 25 && performanceLevel > 0.3) {
+            performanceLevel = Math.max(0.3, performanceLevel - 0.1);
+            updateParticleCount();
+            console.log(`Performance: Reducing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
+        } else if (currentFps > 40 && performanceLevel < 1.0) {
+            // Only increase if stable for longer
+            performanceLevel = Math.min(1.0, performanceLevel + 0.05);
+            updateParticleCount();
+            console.log(`Performance: Increasing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
+        }
+    }
     
     if (now - lastInteractionTime > 200) isInteracting = false;
 

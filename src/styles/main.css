@@ -649,6 +649,17 @@ body.light-mode .platform-tab.active {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.95);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.contact-content::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+.contact-content {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .contact-panel.active .contact-content {
