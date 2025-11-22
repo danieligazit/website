@@ -1073,10 +1073,16 @@ function startOrientationListener() {
         }
         
         // Determine if we should be active or dormant
-        if (tiltMagnitude > TILT_THRESHOLD) {
-            // Active - tilting
+        if (isDormant && tiltMagnitude > TILT_THRESHOLD) {
+            // Activate from dormant state - only check threshold when dormant
             isDormant = false;
             lastOrientationChange = now;
+            stabilityCheckValues = []; // Clear stability buffer when activating
+            if (statusEl) statusEl.innerText = 'ACTIVE';
+        }
+        
+        if (!isDormant) {
+            // We're active - calculate and apply visual parameters
             
             // Calculate deltas from baseline (when it was dormant)
             let alphaRawDelta = alpha - orientationBaseline.alpha;
@@ -1109,14 +1115,16 @@ function startOrientationListener() {
             
             lastInteractionTime = now;
             isInteracting = true;
-        } else if (!isDormant && isStable && (now - lastOrientationChange > DORMANT_TIMEOUT)) {
-            // Transition to dormant - save current orientation as new baseline
-            // Only if it's been stable (not jittering) for the timeout period
-            isDormant = true;
-            orientationBaseline = { alpha, beta, gamma };
-            stabilityCheckValues = []; // Clear stability buffer
-            console.log('Went dormant, new baseline:', orientationBaseline);
-            if (statusEl) statusEl.innerText = 'DORMANT';
+            
+            // Check if we should go dormant (phone is stable in new position)
+            if (isStable && (now - lastOrientationChange > DORMANT_TIMEOUT)) {
+                // Transition to dormant - save current orientation as new baseline
+                isDormant = true;
+                orientationBaseline = { alpha, beta, gamma };
+                stabilityCheckValues = []; // Clear stability buffer
+                console.log('Went dormant, new baseline:', orientationBaseline);
+                if (statusEl) statusEl.innerText = 'DORMANT';
+            }
         }
     });
 }
