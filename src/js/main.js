@@ -921,26 +921,30 @@ const animate = () => {
         frameCount = 0;
         lastFpsCheck = now;
         
-        // Very aggressive performance adjustment to target 60+ FPS
-        if (currentFps < 30 && performanceLevel > 0.3) {
-            performanceLevel = Math.max(0.3, performanceLevel - 0.25); // Extremely aggressive
+        // Aggressive performance adjustment to target 80+ FPS
+        if (currentFps < 30 && performanceLevel > 0.25) {
+            performanceLevel = Math.max(0.25, performanceLevel - 0.3); // Extremely aggressive
             updateParticleCount();
             console.log(`Performance: Reducing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
-        } else if (currentFps < 40 && performanceLevel > 0.4) {
-            performanceLevel = Math.max(0.4, performanceLevel - 0.2); // Very aggressive
+        } else if (currentFps < 45 && performanceLevel > 0.3) {
+            performanceLevel = Math.max(0.3, performanceLevel - 0.2); // Very aggressive
             updateParticleCount();
             console.log(`Performance: Reducing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
-        } else if (currentFps < 50 && performanceLevel > 0.5) {
-            performanceLevel = Math.max(0.5, performanceLevel - 0.15); // Aggressive
+        } else if (currentFps < 60 && performanceLevel > 0.35) {
+            performanceLevel = Math.max(0.35, performanceLevel - 0.15); // Aggressive
             updateParticleCount();
             console.log(`Performance: Reducing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
-        } else if (currentFps < 60 && performanceLevel > 0.6) {
-            performanceLevel = Math.max(0.6, performanceLevel - 0.1); // Moderate - Your machine hits here at 51 FPS
+        } else if (currentFps < 70 && performanceLevel > 0.4) {
+            performanceLevel = Math.max(0.4, performanceLevel - 0.12); // Moderate-aggressive
             updateParticleCount();
             console.log(`Performance: Reducing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
-        } else if (currentFps > 70 && performanceLevel < 1.0) {
-            // Only increase if hitting 70+ FPS consistently
-            performanceLevel = Math.min(1.0, performanceLevel + 0.03);
+        } else if (currentFps < 80 && performanceLevel > 0.45) {
+            performanceLevel = Math.max(0.45, performanceLevel - 0.08); // Moderate - Your machine at 60 FPS hits here
+            updateParticleCount();
+            console.log(`Performance: Reducing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
+        } else if (currentFps > 85 && performanceLevel < 1.0) {
+            // Only increase if hitting 85+ FPS consistently
+            performanceLevel = Math.min(1.0, performanceLevel + 0.02);
             updateParticleCount();
             console.log(`Performance: Increasing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
         }
