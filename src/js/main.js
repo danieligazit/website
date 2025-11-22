@@ -333,6 +333,9 @@ let currentAperture = 3.5;
 const elValFocus = document.getElementById('val-focus');
 const elValAperture = document.getElementById('val-aperture');
 const elValStatus = document.getElementById('val-status');
+const elValFps = document.getElementById('val-fps');
+const elValPoints = document.getElementById('val-points');
+const elValQuality = document.getElementById('val-quality');
 
 elValAperture.innerText = currentAperture.toFixed(2);
 
@@ -918,14 +921,22 @@ const animate = () => {
         frameCount = 0;
         lastFpsCheck = now;
         
-        // Adjust performance level based on FPS
-        // Target: 30+ fps = full quality, below 30 fps = reduce quality
-        if (currentFps < 25 && performanceLevel > 0.3) {
-            performanceLevel = Math.max(0.3, performanceLevel - 0.1);
+        // More aggressive performance adjustment
+        // Target: 40+ fps = full quality, 30-40 = reduce slightly, below 30 = reduce aggressively
+        if (currentFps < 20 && performanceLevel > 0.3) {
+            performanceLevel = Math.max(0.3, performanceLevel - 0.15); // Very aggressive
             updateParticleCount();
             console.log(`Performance: Reducing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
-        } else if (currentFps > 40 && performanceLevel < 1.0) {
-            // Only increase if stable for longer
+        } else if (currentFps < 30 && performanceLevel > 0.4) {
+            performanceLevel = Math.max(0.4, performanceLevel - 0.1); // Aggressive
+            updateParticleCount();
+            console.log(`Performance: Reducing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
+        } else if (currentFps < 40 && performanceLevel > 0.7) {
+            performanceLevel = Math.max(0.7, performanceLevel - 0.05); // Moderate
+            updateParticleCount();
+            console.log(`Performance: Reducing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
+        } else if (currentFps > 50 && performanceLevel < 1.0) {
+            // Only increase if stable and high FPS
             performanceLevel = Math.min(1.0, performanceLevel + 0.05);
             updateParticleCount();
             console.log(`Performance: Increasing quality to ${(performanceLevel * 100).toFixed(0)}% (FPS: ${currentFps.toFixed(1)})`);
@@ -943,8 +954,17 @@ const animate = () => {
     currentFocus += (targetFocus - currentFocus) * 0.1;
     currentAperture += (targetAperture - currentAperture) * 0.1;
 
+    // Update UI displays
     if (elValFocus) elValFocus.innerText = currentFocus.toFixed(0);
     if (elValAperture) elValAperture.innerText = currentAperture.toFixed(1);
+    if (elValFps) elValFps.innerText = currentFps.toFixed(0);
+    
+    const currentPointCount = Math.floor(TOTAL_POINTS * performanceLevel);
+    if (elValPoints) {
+        const pointsInMillions = (currentPointCount / 1000000).toFixed(2);
+        elValPoints.innerText = `${pointsInMillions}M`;
+    }
+    if (elValQuality) elValQuality.innerText = `${(performanceLevel * 100).toFixed(0)}%`;
     
     if (elValStatus) {
         const isLightMode = document.body.classList.contains('light-mode');
