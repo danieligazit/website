@@ -888,17 +888,93 @@ closeWorksBtn.addEventListener('click', () => closeWorksPanel(true));
 // END WORKS PANEL FUNCTIONALITY
 // ========================================
 
-document.addEventListener('mousemove', (e) => {
-    const nx = e.clientX / window.innerWidth;
-    const ny = e.clientY / window.innerHeight;
-    
-    targetFocus = 150.0 + (nx * 400.0);
-    // Inverse relationship: left side (nx=0) = more bokeh, right side (nx=1) = less bokeh
-    targetAperture = 8.0 - (nx * 5.0) + (ny * 1.5);
-    
-    lastInteractionTime = performance.now();
-    isInteracting = true;
-});
+// ========================================
+// INPUT DETECTION (Mobile vs Desktop)
+// ========================================
+
+// Detect if device is mobile/tablet
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                       (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+
+// Device Orientation (Mobile/Tablet)
+if (isMobileDevice && window.DeviceOrientationEvent) {
+    // Check if iOS requires permission
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // iOS 13+ requires permission - we'll request it on first interaction
+        let permissionGranted = false;
+        
+        // Create permission button
+        const requestPermission = async () => {
+            try {
+                const permission = await DeviceOrientationEvent.requestPermission();
+                if (permission === 'granted') {
+                    permissionGranted = true;
+                    startOrientationListener();
+                }
+            } catch (error) {
+                console.error('Error requesting device orientation permission:', error);
+            }
+        };
+        
+        // Request permission on any user interaction
+        const requestOnInteraction = () => {
+            if (!permissionGranted) {
+                requestPermission();
+                // Remove listeners after first attempt
+                document.removeEventListener('click', requestOnInteraction);
+                document.removeEventListener('touchstart', requestOnInteraction);
+            }
+        };
+        
+        document.addEventListener('click', requestOnInteraction, { once: true });
+        document.addEventListener('touchstart', requestOnInteraction, { once: true });
+    } else {
+        // Android or older iOS - works without permission
+        startOrientationListener();
+    }
+}
+
+function startOrientationListener() {
+    window.addEventListener('deviceorientation', (e) => {
+        // beta: front-back tilt (-180 to 180)
+        // gamma: left-right tilt (-90 to 90)
+        const beta = e.beta;
+        const gamma = e.gamma;
+        
+        if (beta === null || gamma === null) return;
+        
+        // Normalize to 0-1 range
+        // gamma: -90 (left) to 90 (right) → 0 to 1
+        const nx = Math.max(0, Math.min(1, (gamma + 90) / 180));
+        
+        // beta: We want a reasonable range, say -90 to 90
+        // Phone flat = 0, tilted forward = positive, back = negative
+        // Normalize roughly -90 to 90 → 0 to 1
+        const normalizedBeta = Math.max(-90, Math.min(90, beta));
+        const ny = (normalizedBeta + 90) / 180;
+        
+        targetFocus = 150.0 + (nx * 400.0);
+        targetAperture = 8.0 - (nx * 5.0) + (ny * 1.5);
+        
+        lastInteractionTime = performance.now();
+        isInteracting = true;
+    });
+}
+
+// Mouse Movement (Desktop)
+if (!isMobileDevice) {
+    document.addEventListener('mousemove', (e) => {
+        const nx = e.clientX / window.innerWidth;
+        const ny = e.clientY / window.innerHeight;
+        
+        targetFocus = 150.0 + (nx * 400.0);
+        // Inverse relationship: left side (nx=0) = more bokeh, right side (nx=1) = less bokeh
+        targetAperture = 8.0 - (nx * 5.0) + (ny * 1.5);
+        
+        lastInteractionTime = performance.now();
+        isInteracting = true;
+    });
+}
 
 // Performance adjustment function
 function updateParticleCount() {
