@@ -372,24 +372,6 @@ const elValQuality = document.getElementById('val-quality');
 elValAperture.innerText = currentAperture.toFixed(2);
 
 // Add mobile tilt debug display (only on mobile) - insert before the invert reality button
-if (isMobileDevice) {
-    const dataDisplay = document.querySelector('.data-display');
-    const invertRealityDiv = document.querySelector('#nav-theme').parentElement;
-    
-    const tiltDebug = document.createElement('div');
-    tiltDebug.style.borderTop = '1px solid rgba(255,255,255,0.2)';
-    tiltDebug.style.paddingTop = '8px';
-    tiltDebug.style.marginTop = '8px';
-    tiltDebug.style.marginBottom = '8px';
-    tiltDebug.innerHTML = `
-        <div>ORIENT: <span class="value" id="val-orient-status">WAITING</span></div>
-        <div>TILT: <span class="value" id="val-alpha">0</span> | <span class="value" id="val-beta">0</span> | <span class="value" id="val-gamma">0</span> (<span class="value" id="val-tilt-mag">0</span>)</div>
-    `;
-    
-    // Insert before the invert reality button
-    dataDisplay.insertBefore(tiltDebug, invertRealityDiv);
-}
-
 // Router Configuration
 const routes = {
     '/': { mode: 0, showWorks: false, showContact: false },
@@ -946,186 +928,47 @@ closeWorksBtn.addEventListener('click', () => closeWorksPanel(true));
 console.log('Device detection - isMobileDevice:', isMobileDevice);
 console.log('DeviceOrientationEvent available:', typeof DeviceOrientationEvent !== 'undefined');
 
-// Mobile Orientation State
-let orientationBaseline = null; // Start as null, will be set on first reading
-let isDormant = true;
-const TILT_THRESHOLD = 25; // degrees - threshold to activate from dormant (increased for stability)
-const DORMANT_TIMEOUT = 800; // ms - how long to wait before going dormant (increased for better stability)
-const STABILITY_THRESHOLD = 5; // degrees - how stable must it be to go dormant (allows for sensor jitter)
-let lastOrientationChange = 0;
-let orientationInitialized = false;
-let lastAlpha = 0, lastBeta = 0, lastGamma = 0; // Track last values for smoothing
-let stabilityCheckValues = []; // Track recent values for stability check
+// ========================================
+// INPUT HANDLING
+// ========================================
 
-// Device Orientation (Mobile/Tablet)
-if (isMobileDevice && window.DeviceOrientationEvent) {
-    console.log('Mobile device with orientation support detected');
+// Touch controls for mobile
+if (isMobileDevice) {
+    console.log('Mobile device - setting up touch controls');
     
-    // Check if iOS requires permission
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-        console.log('iOS device - permission required');
-        // iOS 13+ requires permission - we'll request it on first interaction
-        let permissionGranted = false;
-        
-        // Create permission button
-        const requestPermission = async () => {
-            try {
-                const permission = await DeviceOrientationEvent.requestPermission();
-                if (permission === 'granted') {
-                    permissionGranted = true;
-                    startOrientationListener();
-                }
-            } catch (error) {
-                console.error('Error requesting device orientation permission:', error);
-            }
-        };
-        
-        // Request permission on any user interaction
-        const requestOnInteraction = () => {
-            if (!permissionGranted) {
-                requestPermission();
-                // Remove listeners after first attempt
-                document.removeEventListener('click', requestOnInteraction);
-                document.removeEventListener('touchstart', requestOnInteraction);
-            }
-        };
-        
-        document.addEventListener('click', requestOnInteraction, { once: true });
-        document.addEventListener('touchstart', requestOnInteraction, { once: true });
-    } else {
-        // Android or older iOS - works without permission
-        console.log('Android or older iOS - starting listener directly');
-        startOrientationListener();
-    }
-} else {
-    console.log('Not mobile or no orientation support. isMobile:', isMobileDevice, 'hasAPI:', !!window.DeviceOrientationEvent);
-}
-
-function startOrientationListener() {
-    console.log('Starting device orientation listener...');
+    const touchHint = document.getElementById('touch-hint');
+    let hasInteracted = false;
     
-    // Update status indicator
-    const statusEl = document.getElementById('val-orient-status');
-    if (statusEl) statusEl.innerText = 'LISTENING';
+    const updateFromTouch = (touch) => {
+        const nx = touch.clientX / window.innerWidth;
+        const ny = touch.clientY / window.innerHeight;
+        
+        targetFocus = 150.0 + (nx * 400.0);
+        targetAperture = 8.0 - (nx * 5.0) + (ny * 1.5);
+        targetHueShift = (ny - 0.5) * 0.4; // -0.2 to 0.2
+        
+        lastInteractionTime = performance.now();
+        isInteracting = true;
+        
+        // Hide touch hint on first interaction
+        if (!hasInteracted && touchHint) {
+            touchHint.classList.add('hidden');
+            hasInteracted = true;
+        }
+    };
     
-    window.addEventListener('deviceorientation', (e) => {
-        let alpha = e.alpha !== null ? e.alpha : 0; // 0-360
-        let beta = e.beta !== null ? e.beta : 0;   // -180 to 180
-        let gamma = e.gamma !== null ? e.gamma : 0; // -90 to 90
-        
-        // Apply exponential smoothing to reduce jitter (0.3 = 30% new, 70% old)
-        const smoothing = 0.3;
-        if (orientationInitialized) {
-            alpha = lastAlpha + smoothing * (alpha - lastAlpha);
-            beta = lastBeta + smoothing * (beta - lastBeta);
-            gamma = lastGamma + smoothing * (gamma - lastGamma);
-        }
-        lastAlpha = alpha;
-        lastBeta = beta;
-        lastGamma = gamma;
-        
-        // Initialize baseline on first reading
-        if (!orientationInitialized) {
-            orientationBaseline = { alpha, beta, gamma };
-            orientationInitialized = true;
-            console.log('Orientation baseline initialized:', orientationBaseline);
-            if (statusEl) statusEl.innerText = 'ACTIVE';
-            return;
-        }
-        
-        // Calculate magnitude of tilt from baseline
-        const deltaBeta = Math.abs(beta - orientationBaseline.beta);
-        const deltaGamma = Math.abs(gamma - orientationBaseline.gamma);
-        const tiltMagnitude = Math.sqrt(deltaBeta * deltaBeta + deltaGamma * deltaGamma);
-        
-        // Update debug display (mobile only)
-        if (isMobileDevice) {
-            const elAlpha = document.getElementById('val-alpha');
-            const elBeta = document.getElementById('val-beta');
-            const elGamma = document.getElementById('val-gamma');
-            const elTiltMag = document.getElementById('val-tilt-mag');
-            
-            if (elAlpha) elAlpha.innerText = alpha.toFixed(1) + '°';
-            if (elBeta) elBeta.innerText = beta.toFixed(1) + '°';
-            if (elGamma) elGamma.innerText = gamma.toFixed(1) + '°';
-            if (elTiltMag) elTiltMag.innerText = tiltMagnitude.toFixed(1) + '°';
-        }
-        
-        const now = performance.now();
-        
-        // Add current values to stability check buffer
-        stabilityCheckValues.push({ beta, gamma, time: now });
-        // Keep only last 10 samples (roughly 300ms worth at ~30Hz sensor rate)
-        if (stabilityCheckValues.length > 10) {
-            stabilityCheckValues.shift();
-        }
-        
-        // Calculate stability: standard deviation of recent values
-        let isStable = false;
-        if (stabilityCheckValues.length >= 5) {
-            const avgBeta = stabilityCheckValues.reduce((sum, v) => sum + v.beta, 0) / stabilityCheckValues.length;
-            const avgGamma = stabilityCheckValues.reduce((sum, v) => sum + v.gamma, 0) / stabilityCheckValues.length;
-            const varianceBeta = stabilityCheckValues.reduce((sum, v) => sum + Math.pow(v.beta - avgBeta, 2), 0) / stabilityCheckValues.length;
-            const varianceGamma = stabilityCheckValues.reduce((sum, v) => sum + Math.pow(v.gamma - avgGamma, 2), 0) / stabilityCheckValues.length;
-            const stdDev = Math.sqrt(varianceBeta + varianceGamma);
-            
-            isStable = stdDev < STABILITY_THRESHOLD;
-        }
-        
-        // Determine if we should be active or dormant
-        if (isDormant && tiltMagnitude > TILT_THRESHOLD) {
-            // Activate from dormant state - only check threshold when dormant
-            isDormant = false;
-            lastOrientationChange = now;
-            stabilityCheckValues = []; // Clear stability buffer when activating
-            if (statusEl) statusEl.innerText = 'ACTIVE';
-        }
-        
-        if (!isDormant) {
-            // We're active - calculate and apply visual parameters
-            
-            // Calculate deltas from baseline (when it was dormant)
-            let alphaRawDelta = alpha - orientationBaseline.alpha;
-            // Handle alpha wraparound (0-360)
-            if (alphaRawDelta > 180) alphaRawDelta -= 360;
-            if (alphaRawDelta < -180) alphaRawDelta += 360;
-            
-            const betaDelta = beta - orientationBaseline.beta;
-            const gammaDelta = gamma - orientationBaseline.gamma;
-            
-            // Map to bounded ranges using sine waves
-            // Each completes a full cycle every 180 degrees of rotation
-            
-            // Gamma (left-right) → Focus (150-550)
-            const focusRange = 200.0; // +/- 200 from center
-            const focusCenter = 300.0;
-            const focusOscillation = focusRange * Math.sin(gammaDelta * Math.PI / 90);
-            targetFocus = focusCenter + focusOscillation;
-            
-            // Beta (front-back) → Aperture (3-8)
-            const apertureRange = 2.5; // +/- 2.5 from center
-            const apertureCenter = 5.5;
-            const apertureOscillation = apertureRange * Math.sin(betaDelta * Math.PI / 90);
-            targetAperture = apertureCenter + apertureOscillation;
-            
-            // Alpha (compass rotation) → Hue shift (-0.2 to 0.2)
-            const hueRange = 0.2;
-            const hueOscillation = hueRange * Math.sin(alphaRawDelta * Math.PI / 90);
-            targetHueShift = hueOscillation;
-            
-            lastInteractionTime = now;
-            isInteracting = true;
-            
-            // Check if we should go dormant (phone is stable in new position)
-            if (isStable && (now - lastOrientationChange > DORMANT_TIMEOUT)) {
-                // Transition to dormant - save current orientation as new baseline
-                isDormant = true;
-                orientationBaseline = { alpha, beta, gamma };
-                stabilityCheckValues = []; // Clear stability buffer
-                console.log('Went dormant, new baseline:', orientationBaseline);
-                if (statusEl) statusEl.innerText = 'DORMANT';
-            }
-        }
+    document.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        updateFromTouch(e.touches[0]);
+    });
+    
+    document.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        updateFromTouch(e.touches[0]);
+    });
+    
+    document.addEventListener('touchend', () => {
+        // Keep last values, don't reset
     });
 }
 
@@ -1171,9 +1014,11 @@ const animate = () => {
         frameCount = 0;
         lastFpsCheck = now;
         
-        // Elegant proportional performance adjustment - targets 80 FPS
-        const TARGET_FPS = 80;
-        const MIN_PERFORMANCE = 0.25;
+        // Elegant proportional performance adjustment
+        // Mobile: target 60 FPS (less aggressive), Desktop: target 80 FPS
+        const TARGET_FPS = isMobileDevice ? 60 : 80;
+        // Mobile devices: be more generous with minimum particles
+        const MIN_PERFORMANCE = isMobileDevice ? 0.5 : 0.25; // Mobile keeps at least 50% particles
         const MAX_PERFORMANCE = 1.0;
         
         // Calculate how far we are from target (negative = below target, positive = above target)
