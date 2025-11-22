@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GPUComputationRenderer } from 'three/examples/jsm/misc/GPUComputationRenderer.js';
+import { worksData } from './works-data.js';
 
 // Configuration
 const WIDTH = 1000;
@@ -13,6 +14,10 @@ const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x020204);
 scene.fog = new THREE.FogExp2(0x020204, 0.002);
+
+// Store background colors for theme switching
+const darkBgColor = new THREE.Color(0x020204);
+const lightBgColor = new THREE.Color(0xf5f5f7);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
 camera.position.set(0, 0, 0.1);
@@ -28,7 +33,7 @@ const gpuCompute = new GPUComputationRenderer(WIDTH, WIDTH, renderer);
 const computeShaderPosition = `
     uniform float uTime;
     uniform float uSpeed;
-    uniform int uMode; // 0:Thomas, 1:Pickover, 2:FractalDream
+    uniform int uMode; // 0:Thomas, 1:Pickover, 2:FractalDream, 3:Thomas Variant
     
     float rand(vec2 co){
         return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
@@ -53,7 +58,7 @@ const computeShaderPosition = `
         // Standard attractors
         w += 0.003 * uSpeed;
         
-        if(uMode == 0) { // Thomas
+        if(uMode == 0) { // Thomas (Homepage/Contact)
             dx = sin(y * a + w) - (b * x);
             dy = sin(z * a + w) - (b * y);
             dz = sin(x * a + w) - (b * z);
@@ -77,6 +82,11 @@ const computeShaderPosition = `
             dx = (nx - x);
             dy = (ny - y);
             dz = (nz - z);
+        } else if(uMode == 3) { // Thomas Variant (Works)
+            a = 1.1; b = 0.23; // More dramatic constants for noticeable change
+            dx = sin(y * a + w) - (b * x);
+            dy = sin(z * a + w) - (b * y);
+            dz = sin(x * a + w) - (b * z);
         }
         
         x += dx * dt * uSpeed;
@@ -87,10 +97,11 @@ const computeShaderPosition = `
         float limit = 60.0;
         if(uMode == 1) limit = 15.0;
         if(uMode == 2) limit = 15.0;
+        if(uMode == 3) limit = 60.0;
 
         if( length(vec3(x,y,z)) > limit ) {
             vec2 seed = uv + vec2(uTime, uTime);
-            float scale = (uMode == 0) ? 10.0 : ((uMode == 1) ? 6.0 : 0.1);
+            float scale = (uMode == 0 || uMode == 3) ? 10.0 : ((uMode == 1) ? 6.0 : 0.1);
             x = (rand(seed) - 0.5) * scale;
             y = (rand(seed + 1.0) - 0.5) * scale;
             z = (rand(seed + 2.0) - 0.5) * scale;
@@ -159,7 +170,8 @@ const visualMaterial = new THREE.ShaderMaterial({
         uFocus: { value: 300.0 },
         uAperture: { value: 5.0 },
         uTime: { value: 0.0 },
-        uMode: { value: 0 }
+        uMode: { value: 0 },
+        uLightMode: { value: 0.0 } // 0 = dark, 1 = light
     },
     vertexShader: `
         uniform sampler2D texturePosition;
@@ -183,6 +195,7 @@ const visualMaterial = new THREE.ShaderMaterial({
             float scale = 15.0;
             if(uMode == 1) scale = 40.0;
             if(uMode == 2) scale = 35.0;
+            if(uMode == 3) scale = 15.0;
             
             vec3 visualPos = pos * scale;
             vPos = visualPos; // Pass to fragment
@@ -219,19 +232,39 @@ const visualMaterial = new THREE.ShaderMaterial({
         uniform float uTime;
         uniform float uAperture;
         uniform int uMode;
+        uniform float uLightMode;
 
         varying float vDist;
         varying float vBlur;
         varying float vSeed;
         varying vec3 vPos;
 
-        vec3 getStarColor(float t) {
-            vec3 blue = vec3(0.5, 0.7, 1.0);
-            vec3 white = vec3(1.0, 0.95, 0.9);
-            vec3 gold = vec3(1.0, 0.6, 0.3);
+        vec3 getStarColor(float t, float lightMode) {
+            // Dark mode colors (for dark background)
+            vec3 darkModeBlue = vec3(0.5, 0.7, 1.0);
+            vec3 darkModeWhite = vec3(1.0, 0.95, 0.9);
+            vec3 darkModeGold = vec3(1.0, 0.6, 0.3);
+            
+            // Light mode colors (for light background) - more saturated dark colors
+            vec3 lightModeDarkBlue = vec3(0.35, 0.18, 1);  //  Dark blue
+            vec3 lightModeBlack = vec3(0.05, 0.05, 0.08);     // Near black
+            vec3 lightModeDarkGold = vec3(0.25, 0.25, 0.28);  // Vibrant dark gold/orange
 
-            if (t < 0.5) return mix(blue, white, t * 2.0);
-            else return mix(white, gold, (t - 0.5) * 2.0);
+            vec3 color1, color2, color3;
+            if (lightMode > 0.5) {
+                // Light mode: use dark colors with variation
+                color1 = lightModeDarkBlue;
+                color2 = lightModeBlack;
+                color3 = lightModeDarkGold;
+            } else {
+                // Dark mode: use light colors
+                color1 = darkModeBlue;
+                color2 = darkModeWhite;
+                color3 = darkModeGold;
+            }
+
+            if (t < 0.5) return mix(color1, color2, t * 2.0);
+            else return mix(color2, color3, (t - 0.5) * 2.0);
         }
 
         void main() {
@@ -239,7 +272,7 @@ const visualMaterial = new THREE.ShaderMaterial({
             float dist = length(coord);
             if (dist > 0.5) discard;
             
-            vec3 starColor = getStarColor(vSeed);
+            vec3 starColor = getStarColor(vSeed, uLightMode);
             
             float twinkleSpeed = 2.0 + vSeed * 3.0;
             float twinkle = 0.7 + 0.3 * sin(uTime * twinkleSpeed + vSeed * 10.0);
@@ -251,9 +284,23 @@ const visualMaterial = new THREE.ShaderMaterial({
             float fade = pow(vBlur, 0.5);
             float apertureFactor = smoothstep(0.0, 10.0, uAperture);
             float minAlpha = mix(0.3, 0.002, apertureFactor);
-            float alpha = mix(0.3, minAlpha, fade);
             
-            gl_FragColor = vec4( starColor * scintillation * glow, alpha );
+            // Adjust alpha and color based on light mode
+            float baseAlpha = mix(0.3, minAlpha, fade);
+            float alpha;
+            vec3 finalColor;
+            
+            if (uLightMode > 0.5) {
+                // Light mode: use higher alpha for dark particles, normal blending
+                alpha = baseAlpha * 1.5;
+                finalColor = starColor * scintillation * glow;
+            } else {
+                // Dark mode: use standard alpha for light particles, additive blending
+                alpha = baseAlpha;
+                finalColor = starColor * scintillation * glow;
+            }
+            
+            gl_FragColor = vec4( finalColor, alpha );
         }
     `,
     blending: THREE.AdditiveBlending,
@@ -284,13 +331,168 @@ elValAperture.innerText = currentAperture.toFixed(2);
 
 // Router Configuration
 const routes = {
-    '/': { mode: 0 },
-    '/works': { mode: 1 },
-    '/contact': { mode: 0 }
+    '/': { mode: 0, showWorks: false, showContact: false },
+    '/works': { mode: 3, showWorks: true, showContact: false },
+    '/contact': { mode: 0, showWorks: false, showContact: true }
 };
 
+// ========================================
+// CONTACT PANEL FUNCTIONALITY
+// ========================================
+
+const contactPanel = document.getElementById('contact-panel');
+const contactBackdrop = document.querySelector('.contact-backdrop');
+const closeContactBtn = document.getElementById('close-contact');
+const emailLink = document.getElementById('email-link');
+const copyToast = document.getElementById('copy-toast');
+
+// Open/Close Contact Panel
+function openContactPanel() {
+    contactPanel.classList.add('active');
+}
+
+function closeContactPanel(shouldNavigate = false) {
+    if (!contactPanel) return;
+    contactPanel.classList.remove('active');
+    
+    // Navigate back to home if we're on /contact and explicitly requested
+    if (shouldNavigate && window.location.pathname === '/contact') {
+        navigate('/', true);
+    }
+}
+
+// Copy email functionality - click to copy
+if (emailLink) {
+    emailLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = 'danieligazit@gmail.com';
+        
+        try {
+            await navigator.clipboard.writeText(email);
+            
+            // Show toast notification
+            if (copyToast) {
+                copyToast.classList.add('show');
+                
+                setTimeout(() => {
+                    copyToast.classList.remove('show');
+                }, 2500);
+            }
+        } catch (err) {
+            console.error('Failed to copy email:', err);
+        }
+    });
+}
+
+// Event listeners
+if (contactBackdrop) contactBackdrop.addEventListener('click', () => closeContactPanel(true));
+if (closeContactBtn) closeContactBtn.addEventListener('click', () => closeContactPanel(true));
+
+// ========================================
+// END CONTACT PANEL FUNCTIONALITY
+// ========================================
+
+// ========================================
+// THEME TOGGLE FUNCTIONALITY
+// ========================================
+
+// Check for saved theme preference or default to dark mode
+const savedTheme = localStorage.getItem('theme') || 'dark';
+const themeToggleBtn = document.getElementById('nav-theme');
+
+// Check if user has clicked the button before (for pulse FTUE)
+const hasInvertedReality = localStorage.getItem('hasInvertedReality');
+
+// Apply pulse animation only if user hasn't clicked before
+if (!hasInvertedReality && themeToggleBtn) {
+    themeToggleBtn.classList.add('pulse');
+}
+
+// Apply saved theme on load
+if (savedTheme === 'light') {
+    document.body.classList.add('light-mode');
+    scene.background.copy(lightBgColor);
+    scene.fog.color.copy(lightBgColor);
+    visualMaterial.uniforms.uLightMode.value = 1.0;
+    visualMaterial.blending = THREE.NormalBlending;
+} else {
+    visualMaterial.uniforms.uLightMode.value = 0.0;
+    visualMaterial.blending = THREE.AdditiveBlending;
+}
+
+// Toggle theme
+function toggleTheme(e) {
+    e.preventDefault();
+    const isLight = document.body.classList.toggle('light-mode');
+    
+    // Mark that user has clicked the button (stop pulse for future visits)
+    localStorage.setItem('hasInvertedReality', 'true');
+    if (themeToggleBtn) {
+        themeToggleBtn.classList.remove('pulse');
+    }
+    
+    if (isLight) {
+        scene.background.copy(lightBgColor);
+        scene.fog.color.copy(lightBgColor);
+        visualMaterial.uniforms.uLightMode.value = 1.0;
+        visualMaterial.blending = THREE.NormalBlending;
+        localStorage.setItem('theme', 'light');
+    } else {
+        scene.background.copy(darkBgColor);
+        scene.fog.color.copy(darkBgColor);
+        visualMaterial.uniforms.uLightMode.value = 0.0;
+        visualMaterial.blending = THREE.AdditiveBlending;
+        localStorage.setItem('theme', 'dark');
+    }
+    
+    // Re-render works if works panel is open (to update embedded player themes)
+    if (worksPanel && worksPanel.classList.contains('active')) {
+        renderWorks(currentFilter);
+    }
+}
+
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', toggleTheme);
+}
+
+// ========================================
+// END THEME TOGGLE FUNCTIONALITY
+// ========================================
+
+// ========================================
+// WORKS PANEL FUNCTIONALITY
+// ========================================
+
+const worksPanel = document.getElementById('works-panel');
+const worksBackdrop = document.querySelector('.works-backdrop');
+const closeWorksBtn = document.getElementById('close-works');
+const worksList = document.getElementById('works-list');
+const filterBtns = document.querySelectorAll('.filter-btn');
+
+let currentFilter = 'all';
+
+// Open/Close Works Panel
+function openWorksPanel() {
+    worksPanel.classList.add('active');
+    renderWorks(currentFilter);
+}
+
+function closeWorksPanel(shouldNavigate = false) {
+    if (!worksPanel) return; // Safety check
+    worksPanel.classList.remove('active');
+    // Close all expanded items
+    document.querySelectorAll('.work-item.expanded').forEach(item => {
+        item.classList.remove('expanded');
+    });
+    
+    // Navigate back to home if we're on /works and explicitly requested
+    if (shouldNavigate && window.location.pathname === '/works') {
+        navigate('/', true);
+    }
+}
+
 // Navigation Logic
-function setAttractor(mode, pushState = true) {
+function setAttractor(mode, pushState = true, showWorks = false, showContact = false) {
     currentMode = mode;
     
     // Update Shaders
@@ -300,22 +502,42 @@ function setAttractor(mode, pushState = true) {
     // Update active nav
     document.querySelectorAll('nav a').forEach(el => el.classList.remove('active'));
     
-    // Find and activate current nav item
-    const path = Object.keys(routes).find(p => routes[p].mode === mode);
-    
-    if (path && pushState) {
-        history.pushState({ path }, '', path);
+    // Handle works panel
+    if (showWorks) {
+        openWorksPanel();
+        closeContactPanel();
+        document.getElementById('nav-works').classList.add('active');
+    } else {
+        closeWorksPanel();
     }
     
-    // Set active class based on current path
-    if (path === '/works') document.getElementById('nav-works').classList.add('active');
-    if (path === '/contact') document.getElementById('nav-contact').classList.add('active');
+    // Handle contact panel
+    if (showContact) {
+        openContactPanel();
+        closeWorksPanel();
+        document.getElementById('nav-contact').classList.add('active');
+    } else {
+        closeContactPanel();
+    }
+    
+    // Find and activate current nav item based on mode
+    if (!showWorks && !showContact) {
+        const path = Object.keys(routes).find(p => routes[p].mode === mode && !routes[p].showWorks && !routes[p].showContact);
+        
+        if (path && pushState) {
+            history.pushState({ path }, '', path);
+        }
+    } else if (showWorks && pushState) {
+        history.pushState({ path: '/works' }, '', '/works');
+    } else if (showContact && pushState) {
+        history.pushState({ path: '/contact' }, '', '/contact');
+    }
 }
 
 // Route to page based on URL
 function navigate(path, pushState = true) {
     const route = routes[path] || routes['/'];
-    setAttractor(route.mode, pushState);
+    setAttractor(route.mode, pushState, route.showWorks, route.showContact);
 }
 
 // Handle browser back/forward
@@ -330,6 +552,8 @@ document.getElementById('logo-btn').addEventListener('click', (e) => {
     navigate('/');
 });
 
+// nav-works now handled by navigate function
+
 document.getElementById('nav-works').addEventListener('click', (e) => {
     e.preventDefault();
     navigate('/works');
@@ -343,12 +567,324 @@ document.getElementById('nav-contact').addEventListener('click', (e) => {
 // Initialize route on page load
 navigate(window.location.pathname, false);
 
+// Render works based on filter
+function renderWorks(filter = 'all') {
+    const filteredWorks = filter === 'all' 
+        ? worksData 
+        : worksData.filter(work => work.tags.includes(filter));
+    
+    // Group by year
+    const worksByYear = {};
+    filteredWorks.forEach(work => {
+        if (!worksByYear[work.year]) {
+            worksByYear[work.year] = [];
+        }
+        worksByYear[work.year].push(work);
+    });
+    
+    // Sort years descending
+    const years = Object.keys(worksByYear).sort((a, b) => b - a);
+    
+    // Build HTML
+    let html = '';
+    years.forEach(year => {
+        html += `
+            <div class="work-year-group">
+                <div class="work-year-header">${year}</div>
+                ${worksByYear[year].map(work => createWorkHTML(work)).join('')}
+            </div>
+        `;
+    });
+    
+    worksList.innerHTML = html;
+    
+    // Add event listeners to work items for click
+    document.querySelectorAll('.work-item').forEach(item => {
+        const header = item.querySelector('.work-item-header');
+        header.addEventListener('click', () => {
+            toggleWorkItem(item);
+        });
+    });
+    
+    // Add event listeners to platform tabs
+    document.querySelectorAll('.platform-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.stopPropagation();
+            switchPlatform(tab);
+        });
+    });
+}
+
+function toggleWorkItem(item) {
+    const wasExpanded = item.classList.contains('expanded');
+    
+    // Simply toggle current item without affecting others
+    if (wasExpanded) {
+        item.classList.remove('expanded');
+    } else {
+        item.classList.add('expanded');
+    }
+}
+
+function createWorkHTML(work) {
+    const monthText = work.month ? `${work.month} ` : '';
+    const typeLabel = work.type.charAt(0).toUpperCase() + work.type.slice(1);
+    
+    // Determine work type
+    const isAVWork = work.type === 'audiovisual';
+    const isPerformance = work.performanceImages && work.performanceImages.length > 0;
+    const isMusicWork = work.spotify || work.appleMusic?.id;
+    
+    if (isPerformance && !isMusicWork) {
+        return createPerformanceWorkHTML(work, monthText, typeLabel);
+    } else if (isAVWork) {
+        return createAVWorkHTML(work, monthText, typeLabel);
+    } else {
+        return createMusicWorkHTML(work, monthText, typeLabel);
+    }
+}
+
+function createMusicWorkHTML(work, monthText, typeLabel) {
+    const coverArtHTML = work.coverArt 
+        ? `<div class="work-cover-art"><img src="${work.coverArt}" alt="${work.title} cover"></div>`
+        : '';
+    
+    const expandedClass = work.expandedByDefault ? 'expanded auto-expand' : '';
+    
+    // Check if Apple Music is available
+    const hasAppleMusic = work.appleMusic?.id;
+    
+    // Determine current theme for embeds
+    const isLightMode = document.body.classList.contains('light-mode');
+    const spotifyTheme = isLightMode ? '1' : '0';
+    const appleMusicTheme = isLightMode ? 'light' : 'dark';
+    
+    return `
+        <div class="work-item ${expandedClass}" data-work-id="${work.id}">
+            <div class="work-item-header">
+                <div class="work-item-main">
+                    ${coverArtHTML}
+                    <div class="work-item-info">
+                        <div class="work-item-title">${work.title}</div>
+                        <div class="work-item-meta">
+                            <span>${monthText}${work.year}</span>
+                            <span class="work-tag">${typeLabel}</span>
+                        </div>
+                        ${work.description ? `<div class="work-item-description">${work.description}</div>` : ''}
+                    </div>
+                </div>
+                <div class="work-expand-icon">▸</div>
+            </div>
+            <div class="work-details">
+                <div class="work-details-inner">
+                    <div class="platform-tabs">
+                        <button class="platform-tab active" data-platform="spotify">Spotify</button>
+                        <button class="platform-tab" data-platform="apple" ${!hasAppleMusic ? 'disabled' : ''}>Apple Music</button>
+                    </div>
+                    <div class="player-container">
+                        <div class="player-content active" data-platform="spotify">
+                            <iframe 
+                                src="https://open.spotify.com/embed/${work.spotify.type}/${work.spotify.id}?utm_source=generator&theme=${spotifyTheme}" 
+                                width="100%" 
+                                height="${work.spotify.type === 'album' ? '352' : '152'}" 
+                                frameBorder="0" 
+                                allowfullscreen="" 
+                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                                loading="lazy">
+                            </iframe>
+                        </div>
+                        ${hasAppleMusic ? `
+                            <div class="player-content" data-platform="apple">
+                                <iframe 
+                                    allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" 
+                                    frameborder="0" 
+                                    height="${work.appleMusic.type === 'album' ? '450' : '175'}" 
+                                    style="width:100%;overflow:hidden;border-radius:10px;" 
+                                    sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" 
+                                    src="https://embed.music.apple.com/us/${work.appleMusic.type}/${work.appleMusic.id}?theme=${appleMusicTheme}">
+                                </iframe>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createPerformanceWorkHTML(work, monthText, typeLabel) {
+    const coverArtHTML = work.coverArt 
+        ? `<div class="work-cover-art"><img src="${work.coverArt}" alt="${work.title}"></div>`
+        : '';
+    
+    const expandedClass = work.expandedByDefault ? 'expanded auto-expand' : '';
+    
+    return `
+        <div class="work-item ${expandedClass}" data-work-id="${work.id}">
+            <div class="work-item-header">
+                <div class="work-item-main">
+                    ${coverArtHTML}
+                    <div class="work-item-info">
+                        <div class="work-item-title">${work.title}</div>
+                        <div class="work-item-meta">
+                            <span>${monthText}${work.year}</span>
+                            <span class="work-tag">${typeLabel}</span>
+                        </div>
+                        ${work.description ? `<div class="work-item-description">${work.description}</div>` : ''}
+                    </div>
+                </div>
+                <div class="work-expand-icon">▸</div>
+            </div>
+            <div class="work-details">
+                <div class="work-details-inner">
+                    ${work.longDescription ? `
+                        <div class="performance-description">
+                            ${work.longDescription}
+                        </div>
+                    ` : ''}
+                    ${work.performanceImages && work.performanceImages.length > 0 ? `
+                        <div class="performance-gallery">
+                            ${work.performanceImages.map(img => `
+                                <div class="performance-image">
+                                    <img src="${img}" alt="${work.title} performance">
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createAVWorkHTML(work, monthText, typeLabel) {
+    const platforms = work.platforms || {};
+    const hasYoutube = platforms.youtube?.id;
+    const hasVimeo = platforms.vimeo?.id;
+    const multiplePlatforms = hasYoutube && hasVimeo;
+    
+    const coverArtHTML = work.coverArt 
+        ? `<div class="work-cover-art"><img src="${work.coverArt}" alt="${work.title} cover"></div>`
+        : '';
+    
+    const expandedClass = work.expandedByDefault ? 'expanded auto-expand' : '';
+    
+    // Build YouTube embed URL
+    let youtubeUrl = '';
+    if (hasYoutube) {
+        youtubeUrl = `https://www.youtube.com/embed/${platforms.youtube.id}`;
+        if (platforms.youtube.startTime) {
+            youtubeUrl += `?start=${platforms.youtube.startTime}`;
+        }
+    }
+    
+    // Build Vimeo embed URL
+    const vimeoUrl = hasVimeo ? `https://player.vimeo.com/video/${platforms.vimeo.id}` : '';
+    
+    return `
+        <div class="work-item ${expandedClass}" data-work-id="${work.id}">
+            <div class="work-item-header">
+                <div class="work-item-main">
+                    ${coverArtHTML}
+                    <div class="work-item-info">
+                        <div class="work-item-title">${work.title}</div>
+                        <div class="work-item-meta">
+                            <span>${monthText}${work.year}</span>
+                            <span class="work-tag">${typeLabel}</span>
+                        </div>
+                        ${work.description ? `<div class="work-item-description">${work.description}</div>` : ''}
+                    </div>
+                </div>
+                <div class="work-expand-icon">▸</div>
+            </div>
+            <div class="work-details">
+                <div class="work-details-inner">
+                    ${multiplePlatforms ? `
+                        <div class="platform-tabs">
+                            ${hasYoutube ? '<button class="platform-tab active" data-platform="youtube">YouTube</button>' : ''}
+                            ${hasVimeo ? `<button class="platform-tab ${!hasYoutube ? 'active' : ''}" data-platform="vimeo">Vimeo</button>` : ''}
+                        </div>
+                    ` : ''}
+                    <div class="player-container av-player">
+                        ${hasYoutube ? `
+                            <div class="player-content active" data-platform="youtube">
+                                <iframe 
+                                    src="${youtubeUrl}" 
+                                    width="100%" 
+                                    height="405" 
+                                    frameBorder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                    allowfullscreen
+                                    loading="lazy">
+                                </iframe>
+                            </div>
+                        ` : ''}
+                        ${hasVimeo ? `
+                            <div class="player-content ${!hasYoutube ? 'active' : ''}" data-platform="vimeo">
+                                <iframe 
+                                    src="${vimeoUrl}" 
+                                    width="100%" 
+                                    height="405" 
+                                    frameBorder="0" 
+                                    allow="autoplay; fullscreen; picture-in-picture" 
+                                    allowfullscreen
+                                    loading="lazy">
+                                </iframe>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function switchPlatform(clickedTab) {
+    const workItem = clickedTab.closest('.work-item');
+    const platform = clickedTab.dataset.platform;
+    
+    // Update tabs
+    workItem.querySelectorAll('.platform-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    clickedTab.classList.add('active');
+    
+    // Update player content
+    workItem.querySelectorAll('.player-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    workItem.querySelector(`.player-content[data-platform="${platform}"]`).classList.add('active');
+}
+
+// Filter functionality
+filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        currentFilter = btn.dataset.filter;
+        
+        // Update active filter
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Re-render works
+        renderWorks(currentFilter);
+    });
+});
+
+// Event listeners
+worksBackdrop.addEventListener('click', () => closeWorksPanel(true));
+closeWorksBtn.addEventListener('click', () => closeWorksPanel(true));
+
+// ========================================
+// END WORKS PANEL FUNCTIONALITY
+// ========================================
+
 document.addEventListener('mousemove', (e) => {
     const nx = e.clientX / window.innerWidth;
     const ny = e.clientY / window.innerHeight;
     
     targetFocus = 150.0 + (nx * 400.0);
-    targetAperture = 3.5 + (ny * 3.0);
+    // Inverse relationship: left side (nx=0) = more bokeh, right side (nx=1) = less bokeh
+    targetAperture = 8.0 - (nx * 5.0) + (ny * 1.5);
     
     lastInteractionTime = performance.now();
     isInteracting = true;
@@ -374,9 +910,10 @@ const animate = () => {
     if (elValAperture) elValAperture.innerText = currentAperture.toFixed(1);
     
     if (elValStatus) {
+        const isLightMode = document.body.classList.contains('light-mode');
         if (currentSimSpeed > 0.1) {
             elValStatus.innerText = "ACTIVE";
-            elValStatus.style.color = "#ffffff";
+            elValStatus.style.color = isLightMode ? "#000000" : "#ffffff";
         } else {
             elValStatus.innerText = "DORMANT";
             elValStatus.style.color = "#666666";
@@ -411,8 +948,16 @@ animate();
 
 setTimeout(() => {
     const loader = document.getElementById('loader');
+    const logoArea = document.querySelector('.logo-area');
+    const dataDisplay = document.querySelector('.data-display');
+    
     if (loader) {
         loader.style.opacity = '0';
-        setTimeout(() => loader.remove(), 1000);
+        setTimeout(() => {
+            loader.remove();
+            // Show logo and data display after loader is removed
+            if (logoArea) logoArea.classList.add('loaded');
+            if (dataDisplay) dataDisplay.classList.add('loaded');
+        }, 0); // Reduced from 1000ms to 0ms
     }
-}, 1000);
+}, 300); // Reduced from 1000ms to 300ms - total delay is now 800ms
