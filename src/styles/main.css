@@ -968,6 +968,10 @@ body.light-mode .contact-link:hover {
         width: 100%;
     }
     
+    .ui-layer {
+        overflow: visible;
+    }
+    
     .data-display {
         font-size: 0.6rem;
         line-height: 1.3;
@@ -976,6 +980,7 @@ body.light-mode .contact-link:hover {
         max-height: none;
         overflow-y: visible;
         height: auto;
+        position: fixed;
     }
     
     /* Move navigation below logo on mobile to prevent overlap */
