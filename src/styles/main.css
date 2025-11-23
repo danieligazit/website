@@ -873,8 +873,36 @@ body.light-mode .contact-link:hover {
 
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
+    /* Full-page panels on mobile (not sidepanels) */
     .works-content {
         width: 100vw;
+        padding: 1.5rem;
+        transform: translateX(0); /* No slide animation */
+        left: 0;
+        right: auto;
+        border-left: none;
+    }
+    
+    .works-panel {
+        background: var(--bg-secondary); /* Solid background on mobile */
+    }
+    
+    .works-backdrop {
+        display: none; /* No backdrop needed */
+    }
+    
+    /* Hide canvas when panel is active on mobile */
+    .works-panel.active ~ #canvas-container,
+    .contact-panel.active ~ #canvas-container {
+        display: none;
+    }
+    
+    /* Hide UI elements when panel is active */
+    .works-panel.active ~ .ui-layer,
+    .works-panel.active ~ nav,
+    .contact-panel.active ~ .ui-layer,
+    .contact-panel.active ~ nav {
+        display: none;
     }
     
     .works-header h2 {
@@ -882,8 +910,20 @@ body.light-mode .contact-link:hover {
     }
     
     .contact-content {
-        width: 95vw;
+        width: 100vw;
         padding: 1.5rem;
+        transform: translateX(0); /* No slide animation */
+        left: 0;
+        right: auto;
+        border-left: none;
+    }
+    
+    .contact-panel {
+        background: var(--bg-secondary); /* Solid background on mobile */
+    }
+    
+    .contact-backdrop {
+        display: none; /* No backdrop needed */
     }
     
     .contact-header h2 {
