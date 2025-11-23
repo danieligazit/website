@@ -899,10 +899,13 @@ body.light-mode .contact-link:hover {
     }
     
     body.panel-open .ui-layer,
-    body.panel-open nav,
-    body.panel-open .logo-area {
+    body.panel-open nav {
         visibility: hidden !important;
         pointer-events: none !important;
+    }
+    
+    body.panel-open .logo-area {
+        display: none !important;
     }
     
     .works-header h2 {
