@@ -1052,9 +1052,11 @@ const animate = () => {
     currentSimSpeed += (targetSimSpeed - currentSimSpeed) * lerpFactor;
     if (currentSimSpeed < 0.005) currentSimSpeed = 0.0;
 
-    currentFocus += (targetFocus - currentFocus) * 0.1;
-    currentAperture += (targetAperture - currentAperture) * 0.1;
-    currentHueShift += (targetHueShift - currentHueShift) * 0.1;
+    // Smooth easing for visual parameters (slower on mobile for better feel)
+    const paramLerpFactor = isMobileDevice ? 0.03 : 0.08; // ~1-2 seconds on mobile, faster on desktop
+    currentFocus += (targetFocus - currentFocus) * paramLerpFactor;
+    currentAperture += (targetAperture - currentAperture) * paramLerpFactor;
+    currentHueShift += (targetHueShift - currentHueShift) * paramLerpFactor;
 
     // Update UI displays
     if (elValFocus) elValFocus.innerText = currentFocus.toFixed(0);

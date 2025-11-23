@@ -926,6 +926,33 @@ body.light-mode .contact-link:hover {
         left: 1rem;
         max-height: calc(100vh - 4rem);
     }
+    
+    /* Move navigation below logo on mobile to prevent overlap */
+    .logo-area {
+        top: 1rem;
+        left: 1rem;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    .subtitle {
+        font-size: 0.8rem;
+    }
+    
+    nav {
+        top: auto;
+        bottom: 1rem;
+        right: 1rem;
+        left: auto;
+    }
+    
+    nav ul {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.5rem;
+    }
 }
 
 /* === PERFORMANCE GALLERY === */
