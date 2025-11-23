@@ -874,6 +874,11 @@ body.light-mode .contact-link:hover {
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
     /* Full-page panels on mobile (not sidepanels) */
+    .works-panel {
+        background: var(--bg-secondary); /* Solid background on mobile */
+        z-index: 200; /* Above everything else */
+    }
+    
     .works-content {
         width: 100vw;
         padding: 1.5rem;
@@ -883,24 +888,30 @@ body.light-mode .contact-link:hover {
         border-left: none;
     }
     
-    .works-panel {
-        background: var(--bg-secondary); /* Solid background on mobile */
-    }
-    
     .works-backdrop {
         display: none; /* No backdrop needed */
     }
     
     /* Hide canvas and UI when panel is open on mobile */
     body.panel-open #canvas-container,
-    body.panel-open #touch-hint,
-    body.panel-open .ui-layer,
-    body.panel-open nav {
+    body.panel-open #touch-hint {
         display: none !important;
+    }
+    
+    body.panel-open .ui-layer,
+    body.panel-open nav,
+    body.panel-open .logo-area {
+        visibility: hidden !important;
+        pointer-events: none !important;
     }
     
     .works-header h2 {
         font-size: 1.2rem;
+    }
+    
+    .contact-panel {
+        background: var(--bg-secondary); /* Solid background on mobile */
+        z-index: 200; /* Above everything else */
     }
     
     .contact-content {
@@ -917,10 +928,6 @@ body.light-mode .contact-link:hover {
     
     .contact-panel.active .contact-content {
         transform: none; /* Remove scale animation */
-    }
-    
-    .contact-panel {
-        background: var(--bg-secondary); /* Solid background on mobile */
     }
     
     .contact-backdrop {
@@ -965,7 +972,8 @@ body.light-mode .contact-link:hover {
         line-height: 1.4;
         bottom: 1rem;
         left: 1rem;
-        max-height: calc(100vh - 4rem);
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
     }
     
     /* Move navigation below logo on mobile to prevent overlap */
@@ -1084,7 +1092,11 @@ body.light-mode .performance-image {
 
 @media (max-width: 768px) {
     .touch-hint {
-        display: flex;
+        display: none; /* Hidden by default, shown after loading */
+    }
+    
+    .touch-hint.loaded {
+        display: flex; /* Show after loading completes */
     }
     
     .touch-hint.hidden {

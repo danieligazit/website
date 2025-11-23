@@ -392,9 +392,11 @@ const copyToast = document.getElementById('copy-toast');
 // Open/Close Contact Panel
 function openContactPanel() {
     contactPanel.classList.add('active');
+    console.log('Opening contact panel, isMobileDevice:', isMobileDevice);
     // Add class to body for mobile styling
     if (isMobileDevice) {
         document.body.classList.add('panel-open');
+        console.log('Added panel-open class to body');
     }
 }
 
@@ -526,9 +528,11 @@ let currentFilter = 'all';
 function openWorksPanel() {
     worksPanel.classList.add('active');
     renderWorks(currentFilter);
+    console.log('Opening works panel, isMobileDevice:', isMobileDevice);
     // Add class to body for mobile styling
     if (isMobileDevice) {
         document.body.classList.add('panel-open');
+        console.log('Added panel-open class to body');
     }
 }
 
@@ -1128,6 +1132,7 @@ setTimeout(() => {
     const loader = document.getElementById('loader');
     const logoArea = document.querySelector('.logo-area');
     const dataDisplay = document.querySelector('.data-display');
+    const touchHint = document.getElementById('touch-hint');
     
     if (loader) {
         loader.style.opacity = '0';
@@ -1136,6 +1141,10 @@ setTimeout(() => {
             // Show logo and data display after loader is removed
             if (logoArea) logoArea.classList.add('loaded');
             if (dataDisplay) dataDisplay.classList.add('loaded');
+            // Show touch hint on mobile after loading completes
+            if (touchHint && isMobileDevice) {
+                touchHint.classList.add('loaded');
+            }
         }, 0); // Reduced from 1000ms to 0ms
     }
 }, 300); // Reduced from 1000ms to 300ms - total delay is now 800ms
