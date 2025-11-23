@@ -359,7 +359,8 @@ let currentHueShift = 0.0;
 
 // Detect if device is mobile/tablet (needed early for UI setup)
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                       (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+                       (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) ||
+                       window.innerWidth <= 768;
 
 // UI Elements
 const elValFocus = document.getElementById('val-focus');
@@ -393,11 +394,9 @@ const copyToast = document.getElementById('copy-toast');
 function openContactPanel() {
     contactPanel.classList.add('active');
     console.log('Opening contact panel, isMobileDevice:', isMobileDevice);
-    // Add class to body for mobile styling
-    if (isMobileDevice) {
-        document.body.classList.add('panel-open');
-        console.log('Added panel-open class to body');
-    }
+    // Add class to body for mobile styling (CSS will handle visibility based on screen size)
+    document.body.classList.add('panel-open');
+    console.log('Added panel-open class to body');
 }
 
 function closeContactPanel(shouldNavigate = false) {
@@ -529,11 +528,9 @@ function openWorksPanel() {
     worksPanel.classList.add('active');
     renderWorks(currentFilter);
     console.log('Opening works panel, isMobileDevice:', isMobileDevice);
-    // Add class to body for mobile styling
-    if (isMobileDevice) {
-        document.body.classList.add('panel-open');
-        console.log('Added panel-open class to body');
-    }
+    // Add class to body for mobile styling (CSS will handle visibility based on screen size)
+    document.body.classList.add('panel-open');
+    console.log('Added panel-open class to body');
 }
 
 function closeWorksPanel(shouldNavigate = false) {
