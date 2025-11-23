@@ -891,18 +891,12 @@ body.light-mode .contact-link:hover {
         display: none; /* No backdrop needed */
     }
     
-    /* Hide canvas when panel is active on mobile */
-    .works-panel.active ~ #canvas-container,
-    .contact-panel.active ~ #canvas-container {
-        display: none;
-    }
-    
-    /* Hide UI elements when panel is active */
-    .works-panel.active ~ .ui-layer,
-    .works-panel.active ~ nav,
-    .contact-panel.active ~ .ui-layer,
-    .contact-panel.active ~ nav {
-        display: none;
+    /* Hide canvas and UI when panel is open on mobile */
+    body.panel-open #canvas-container,
+    body.panel-open #touch-hint,
+    body.panel-open .ui-layer,
+    body.panel-open nav {
+        display: none !important;
     }
     
     .works-header h2 {
@@ -911,11 +905,18 @@ body.light-mode .contact-link:hover {
     
     .contact-content {
         width: 100vw;
+        max-height: 100vh;
         padding: 1.5rem;
-        transform: translateX(0); /* No slide animation */
+        position: absolute;
+        top: 0;
         left: 0;
-        right: auto;
-        border-left: none;
+        transform: none; /* Remove centering transform */
+        border: none;
+        border-radius: 0;
+    }
+    
+    .contact-panel.active .contact-content {
+        transform: none; /* Remove scale animation */
     }
     
     .contact-panel {

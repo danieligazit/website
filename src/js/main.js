@@ -392,11 +392,19 @@ const copyToast = document.getElementById('copy-toast');
 // Open/Close Contact Panel
 function openContactPanel() {
     contactPanel.classList.add('active');
+    // Add class to body for mobile styling
+    if (isMobileDevice) {
+        document.body.classList.add('panel-open');
+    }
 }
 
 function closeContactPanel(shouldNavigate = false) {
     if (!contactPanel) return;
     contactPanel.classList.remove('active');
+    // Remove class from body (mobile only)
+    if (isMobileDevice) {
+        document.body.classList.remove('panel-open');
+    }
     
     // Navigate back to home if we're on /contact and explicitly requested
     if (shouldNavigate && window.location.pathname === '/contact') {
@@ -518,6 +526,10 @@ let currentFilter = 'all';
 function openWorksPanel() {
     worksPanel.classList.add('active');
     renderWorks(currentFilter);
+    // Add class to body for mobile styling
+    if (isMobileDevice) {
+        document.body.classList.add('panel-open');
+    }
 }
 
 function closeWorksPanel(shouldNavigate = false) {
@@ -527,6 +539,10 @@ function closeWorksPanel(shouldNavigate = false) {
     document.querySelectorAll('.work-item.expanded').forEach(item => {
         item.classList.remove('expanded');
     });
+    // Remove class from body (mobile only)
+    if (isMobileDevice) {
+        document.body.classList.remove('panel-open');
+    }
     
     // Navigate back to home if we're on /works and explicitly requested
     if (shouldNavigate && window.location.pathname === '/works') {
