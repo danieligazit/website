@@ -874,11 +874,6 @@ body.light-mode .contact-link:hover {
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
     /* Full-page panels on mobile (not sidepanels) */
-    .works-panel {
-        background: var(--bg-secondary); /* Solid background on mobile */
-        z-index: 200; /* Above everything else */
-    }
-    
     .works-content {
         width: 100vw;
         padding: 1.5rem;
@@ -888,53 +883,44 @@ body.light-mode .contact-link:hover {
         border-left: none;
     }
     
+    .works-panel {
+        background: var(--bg-secondary); /* Solid background on mobile */
+    }
+    
     .works-backdrop {
         display: none; /* No backdrop needed */
     }
     
     /* Hide canvas and UI when panel is open on mobile */
     body.panel-open #canvas-container,
-    body.panel-open #touch-hint {
-        display: none !important;
-    }
-    
-    body.panel-open .logo-area {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-    }
-    
+    body.panel-open #touch-hint,
     body.panel-open .ui-layer,
     body.panel-open nav {
-        visibility: hidden !important;
-        pointer-events: none !important;
+        display: none !important;
     }
     
     .works-header h2 {
         font-size: 1.2rem;
     }
     
-    .contact-panel {
-        background: var(--bg-secondary); /* Solid background on mobile */
-        z-index: 200; /* Above everything else */
-    }
-    
     .contact-content {
         width: 100vw;
-        max-height: 90vh;
+        max-height: 100vh;
         padding: 1.5rem;
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        top: 0;
+        left: 0;
+        transform: none; /* Remove centering transform */
         border: none;
         border-radius: 0;
-        overflow-y: auto;
     }
     
     .contact-panel.active .contact-content {
-        transform: translate(-50%, -50%);
+        transform: none; /* Remove scale animation */
+    }
+    
+    .contact-panel {
+        background: var(--bg-secondary); /* Solid background on mobile */
     }
     
     .contact-backdrop {
@@ -965,28 +951,21 @@ body.light-mode .contact-link:hover {
     }
     
     .contact-item {
-        flex-direction: row;
-        align-items: center;
-        gap: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
     }
     
     .contact-value-row {
         width: 100%;
     }
     
-    .ui-layer {
-        overflow: visible;
-    }
-    
     .data-display {
         font-size: 0.6rem;
-        line-height: 1.3;
+        line-height: 1.4;
         bottom: 1rem;
         left: 1rem;
-        max-height: none;
-        overflow-y: visible;
-        height: auto;
-        position: fixed;
+        max-height: calc(100vh - 4rem);
     }
     
     /* Move navigation below logo on mobile to prevent overlap */
@@ -1105,11 +1084,7 @@ body.light-mode .performance-image {
 
 @media (max-width: 768px) {
     .touch-hint {
-        display: none; /* Hidden by default, shown after loading */
-    }
-    
-    .touch-hint.loaded {
-        display: flex; /* Show after loading completes */
+        display: flex;
     }
     
     .touch-hint.hidden {

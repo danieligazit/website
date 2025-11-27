@@ -12,6 +12,7 @@ const SPHERE_RADIUS = 300.0;
 // Performance monitoring
 let frameCount = 0;
 let lastFpsCheck = performance.now();
+let lastFrameTime = performance.now();
 let currentFps = 60;
 let performanceLevel = 1.0; // 1.0 = full quality, reduces if performance is poor
 let performanceCheckDelay = 2000; // Wait 2 seconds before first check
@@ -40,6 +41,7 @@ const gpuCompute = new GPUComputationRenderer(WIDTH, WIDTH, renderer);
 const computeShaderPosition = `
     uniform float uTime;
     uniform float uSpeed;
+    uniform float uDeltaTime;
     uniform int uMode; // 0:Thomas, 1:Pickover, 2:FractalDream, 3:Thomas Variant
     
     float rand(vec2 co){
@@ -55,7 +57,8 @@ const computeShaderPosition = `
         float z = tmpPos.z;
         float w = tmpPos.w;
 
-        float dt = 0.04;
+        // Use actual delta time, clamped to reasonable values
+        float dt = clamp(uDeltaTime, 0.001, 0.1);
         
         // Params for attractors
         float a = 1.2; float b = 0.19;
@@ -134,6 +137,7 @@ gpuCompute.setVariableDependencies(positionVariable, [positionVariable]);
 positionVariable.material.uniforms = {
     uTime: { value: 0 },
     uSpeed: { value: 0.0 },
+    uDeltaTime: { value: 0.016 }, // ~60fps baseline
     uMode: { value: 0 } // Start with Thomas
 };
 
@@ -359,8 +363,7 @@ let currentHueShift = 0.0;
 
 // Detect if device is mobile/tablet (needed early for UI setup)
 const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                       (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) ||
-                       window.innerWidth <= 768;
+                       (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
 
 // UI Elements
 const elValFocus = document.getElementById('val-focus');
@@ -394,9 +397,11 @@ const copyToast = document.getElementById('copy-toast');
 function openContactPanel() {
     contactPanel.classList.add('active');
     console.log('Opening contact panel, isMobileDevice:', isMobileDevice);
-    // Add class to body for mobile styling (CSS will handle visibility based on screen size)
-    document.body.classList.add('panel-open');
-    console.log('Added panel-open class to body');
+    // Add class to body for mobile styling
+    if (isMobileDevice) {
+        document.body.classList.add('panel-open');
+        console.log('Added panel-open class to body');
+    }
 }
 
 function closeContactPanel(shouldNavigate = false) {
@@ -528,9 +533,11 @@ function openWorksPanel() {
     worksPanel.classList.add('active');
     renderWorks(currentFilter);
     console.log('Opening works panel, isMobileDevice:', isMobileDevice);
-    // Add class to body for mobile styling (CSS will handle visibility based on screen size)
-    document.body.classList.add('panel-open');
-    console.log('Added panel-open class to body');
+    // Add class to body for mobile styling
+    if (isMobileDevice) {
+        document.body.classList.add('panel-open');
+        console.log('Added panel-open class to body');
+    }
 }
 
 function closeWorksPanel(shouldNavigate = false) {
@@ -1022,6 +1029,10 @@ const animate = () => {
     requestAnimationFrame(animate);
     const now = performance.now();
     
+    // Calculate delta time (in seconds) - time since last frame
+    const deltaTime = Math.min((now - lastFrameTime) / 1000, 0.1); // Cap at 100ms to prevent huge jumps
+    lastFrameTime = now;
+    
     // FPS Monitoring and Performance Adjustment
     frameCount++;
     const timeSinceLastCheck = now - lastFpsCheck;
@@ -1032,8 +1043,9 @@ const animate = () => {
         lastFpsCheck = now;
         
         // Elegant proportional performance adjustment
-        // Mobile: target 60 FPS (less aggressive), Desktop: target 80 FPS
-        const TARGET_FPS = isMobileDevice ? 60 : 80;
+        // Target 60 FPS as baseline (works for most displays)
+        // With delta time, simulation speed is now frame-independent
+        const TARGET_FPS = 60;
         // Mobile devices: be more generous with minimum particles
         const MIN_PERFORMANCE = isMobileDevice ? 0.5 : 0.25; // Mobile keeps at least 50% particles
         const MAX_PERFORMANCE = 1.0;
@@ -1100,6 +1112,7 @@ const animate = () => {
 
     positionVariable.material.uniforms.uTime.value = now * 0.001;
     positionVariable.material.uniforms.uSpeed.value = currentSimSpeed;
+    positionVariable.material.uniforms.uDeltaTime.value = deltaTime * 5.0; // x speed multiplier
     
     visualMaterial.uniforms.uFocus.value = currentFocus;
     visualMaterial.uniforms.uAperture.value = currentAperture;
@@ -1110,9 +1123,10 @@ const animate = () => {
 
     visualMaterial.uniforms.texturePosition.value = gpuCompute.getCurrentRenderTarget(positionVariable).texture;
 
-    // Rotate the whole system
-    particleSystem.rotation.y += 0.0001 + (0.002 * currentSimSpeed);
-    particleSystem.rotation.x += 0.00005 + (0.001 * currentSimSpeed);
+    // Rotate the whole system (frame-independent using deltaTime)
+    // Base rotation per second: 0.006 + interaction boost (3x speed)
+    particleSystem.rotation.y += (0.018 + (0.36 * currentSimSpeed)) * deltaTime * 0.65;
+    particleSystem.rotation.x += (0.009 + (0.18 * currentSimSpeed)) * deltaTime * 0.65;
 
     renderer.render(scene, camera);
 };
@@ -1129,7 +1143,6 @@ setTimeout(() => {
     const loader = document.getElementById('loader');
     const logoArea = document.querySelector('.logo-area');
     const dataDisplay = document.querySelector('.data-display');
-    const touchHint = document.getElementById('touch-hint');
     
     if (loader) {
         loader.style.opacity = '0';
@@ -1138,10 +1151,6 @@ setTimeout(() => {
             // Show logo and data display after loader is removed
             if (logoArea) logoArea.classList.add('loaded');
             if (dataDisplay) dataDisplay.classList.add('loaded');
-            // Show touch hint on mobile after loading completes
-            if (touchHint && isMobileDevice) {
-                touchHint.classList.add('loaded');
-            }
         }, 0); // Reduced from 1000ms to 0ms
     }
 }, 300); // Reduced from 1000ms to 300ms - total delay is now 800ms
