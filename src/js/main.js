@@ -284,10 +284,10 @@ const visualMaterial = new THREE.ShaderMaterial({
             vec3 darkModeWhite = vec3(1.0, 0.95, 0.9);
             vec3 darkModeGold = vec3(1.0, 0.6, 0.3);
             
-            // Light mode colors (for light background) - more saturated dark colors
-            vec3 lightModeDarkBlue = vec3(0.35, 0.18, 1);  //  Dark blue
-            vec3 lightModeBlack = vec3(0.05, 0.05, 0.08);     // Near black
-            vec3 lightModeDarkGold = vec3(0.25, 0.25, 0.28);  // Vibrant dark gold/orange
+            // Light mode colors (for light background) - saturated and lighter
+            vec3 lightModeDarkBlue = vec3(0.3, 0.5, 0.95);    // Bright blue
+            vec3 lightModeBlack = vec3(0.85, 0.3, 0.55);      // Vibrant magenta/pink
+            vec3 lightModeDarkGold = vec3(0.15, 0.65, 0.75);  // Bright cyan/teal
 
             vec3 color1, color2, color3;
             if (lightMode > 0.5) {
