@@ -1013,10 +1013,6 @@ body.light-mode .contact-link:hover {
         gap: 0.5rem;
     }
     
-    .data-display {
-        font-size: 0.6rem;
-        -webkit-text-stroke: 0.3px currentColor;
-    }
 }
 
 /* === PERFORMANCE GALLERY === */
