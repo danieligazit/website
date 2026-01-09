@@ -988,12 +988,12 @@ body.light-mode .contact-link:hover {
     
     h1 {
         font-size: 1.8rem;
-        font-weight: 300;
+        -webkit-text-stroke: 0.5px currentColor;
     }
     
     .subtitle {
         font-size: 0.8rem;
-        font-weight: 500;
+        -webkit-text-stroke: 0.3px currentColor;
     }
     
     nav {
@@ -1004,7 +1004,7 @@ body.light-mode .contact-link:hover {
     }
     
     nav a {
-        font-weight: 500;
+        -webkit-text-stroke: 0.4px currentColor;
     }
     
     nav ul {
@@ -1014,7 +1014,8 @@ body.light-mode .contact-link:hover {
     }
     
     .data-display {
-        font-weight: 500;
+        font-size: 0.6rem;
+        -webkit-text-stroke: 0.3px currentColor;
     }
 }
 
