@@ -965,10 +965,14 @@ body.light-mode .contact-link:hover {
     .data-display {
         position: fixed;
         font-size: 0.6rem;
-        line-height: 1.6;
         left: 1rem;
         bottom: 1rem;
         max-height: none;
+        /* Match nav alignment */
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        line-height: 1.2;
     }
     
     /* Hide technical data on mobile to prevent overflow */
