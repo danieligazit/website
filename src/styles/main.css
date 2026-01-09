@@ -963,11 +963,12 @@ body.light-mode .contact-link:hover {
     }
     
     .data-display {
+        position: fixed;
         font-size: 0.6rem;
-        line-height: 1.4;
-        bottom: 1rem;
+        line-height: 1.6;
         left: 1rem;
-        max-height: calc(100vh - 4rem);
+        bottom: 1rem;
+        max-height: none;
     }
     
     /* Hide technical data on mobile to prevent overflow */
