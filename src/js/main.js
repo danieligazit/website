@@ -336,9 +336,11 @@ const visualMaterial = new THREE.ShaderMaterial({
             vec3 finalColor;
             
             if (uLightMode > 0.5) {
-                // Light mode: use higher alpha for dark particles, normal blending
-                alpha = baseAlpha * 1.5;
-                finalColor = starColor * scintillation * glow;
+                // Light mode: boost alpha and color saturation for vibrant colors
+                alpha = baseAlpha * 1.1;
+                // Boost color intensity and reduce glow darkening effect
+                float lightGlow = mix(0.3, 0.8, glow);
+                finalColor = starColor * scintillation * lightGlow;
             } else {
                 // Dark mode: use standard alpha for light particles, additive blending
                 alpha = baseAlpha;
