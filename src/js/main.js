@@ -609,7 +609,14 @@ function setAttractor(mode, pushState = true, showWorks = false, showContact = f
 
 // Route to page based on URL
 function navigate(path, pushState = true) {
-    const route = routes[path] || routes['/'];
+    const route = routes[path];
+    
+    // If route doesn't exist, redirect to 404 page
+    if (!route) {
+        window.location.href = '/404.html';
+        return;
+    }
+    
     setAttractor(route.mode, pushState, route.showWorks, route.showContact);
 }
 
