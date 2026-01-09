@@ -966,9 +966,9 @@ body.light-mode .contact-link:hover {
         position: fixed;
         font-size: 0.6rem;
         left: 1rem;
-        bottom: 1rem;
+        /* Align bottom with nav's Contact item (nav li has margin-bottom: 0.8rem) */
+        bottom: calc(1rem + 0.8rem);
         max-height: none;
-        /* Match nav alignment */
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
