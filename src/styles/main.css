@@ -889,11 +889,12 @@ body.light-mode .contact-link:hover {
     }
     
     .works-backdrop {
-        display: none; /* No backdrop needed */
+        display: block;
+        background: var(--bg-overlay);
+        backdrop-filter: blur(8px);
     }
     
-    /* Hide canvas and UI when panel is open on mobile */
-    body.panel-open #canvas-container,
+    /* Hide UI elements when panel is open on mobile (but keep canvas for blur effect) */
     body.panel-open #touch-hint,
     body.panel-open .ui-layer,
     body.panel-open .logo-area,
@@ -926,7 +927,9 @@ body.light-mode .contact-link:hover {
     }
     
     .contact-backdrop {
-        display: none; /* No backdrop needed */
+        display: block;
+        background: var(--bg-overlay);
+        backdrop-filter: blur(8px);
     }
     
     .contact-header h2 {
