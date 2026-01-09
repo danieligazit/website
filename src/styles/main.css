@@ -970,6 +970,11 @@ body.light-mode .contact-link:hover {
         max-height: calc(100vh - 4rem);
     }
     
+    /* Hide technical data on mobile to prevent overflow */
+    .data-display .data-tech {
+        display: none;
+    }
+    
     /* Move navigation below logo on mobile to prevent overlap */
     .logo-area {
         top: 1rem;
