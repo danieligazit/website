@@ -988,10 +988,12 @@ body.light-mode .contact-link:hover {
     
     h1 {
         font-size: 1.8rem;
+        font-weight: 300;
     }
     
     .subtitle {
         font-size: 0.8rem;
+        font-weight: 500;
     }
     
     nav {
@@ -1001,10 +1003,18 @@ body.light-mode .contact-link:hover {
         left: auto;
     }
     
+    nav a {
+        font-weight: 500;
+    }
+    
     nav ul {
         flex-direction: column;
         align-items: flex-end;
         gap: 0.5rem;
+    }
+    
+    .data-display {
+        font-weight: 500;
     }
 }
 
