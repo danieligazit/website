@@ -9,6 +9,10 @@ const SUB_PARTICLES = 8;
 const TOTAL_POINTS = PARTICLES * SUB_PARTICLES;
 const SPHERE_RADIUS = 300.0;
 
+// Detect if device is mobile/tablet (needed early for shader setup)
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                       (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+
 // Performance monitoring
 let frameCount = 0;
 let lastFpsCheck = performance.now();
@@ -364,10 +368,6 @@ let targetHueShift = 0.0;
 let currentFocus = 300.0;
 let currentAperture = 3.5;
 let currentHueShift = 0.0;
-
-// Detect if device is mobile/tablet (needed early for UI setup)
-const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-                       (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
 
 // UI Elements
 const elValFocus = document.getElementById('val-focus');
