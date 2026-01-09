@@ -183,7 +183,8 @@ const visualMaterial = new THREE.ShaderMaterial({
         uTime: { value: 0.0 },
         uMode: { value: 0 },
         uLightMode: { value: 0.0 }, // 0 = dark, 1 = light
-        uHueShift: { value: 0.0 } // Color shift -1.0 to 1.0
+        uHueShift: { value: 0.0 }, // Color shift -1.0 to 1.0
+        uIsMobile: { value: isMobileDevice ? 1.0 : 0.0 } // Mobile device flag
     },
     vertexShader: `
         uniform sampler2D texturePosition;
@@ -191,6 +192,7 @@ const visualMaterial = new THREE.ShaderMaterial({
         uniform float uFocus;
         uniform float uAperture;
         uniform int uMode;
+        uniform float uIsMobile;
         
         attribute vec3 aScatter;
         
@@ -237,7 +239,9 @@ const visualMaterial = new THREE.ShaderMaterial({
             gl_Position = projectionMatrix * mvPosition;
             
             float baseSize = 1.0 + (aScatter.z * 2.0);
-            gl_PointSize = (baseSize + blurRadius * 1.5) * ( 500.0 / distToCamera );
+            // Reduce particle size on mobile (0.7x scale)
+            float mobileScale = mix(1.0, 0.7, uIsMobile);
+            gl_PointSize = (baseSize + blurRadius * 1.5) * ( 500.0 / distToCamera ) * mobileScale;
         }
     `,
     fragmentShader: `
@@ -1143,6 +1147,7 @@ setTimeout(() => {
     const loader = document.getElementById('loader');
     const logoArea = document.querySelector('.logo-area');
     const dataDisplay = document.querySelector('.data-display');
+    const touchHint = document.getElementById('touch-hint');
     
     if (loader) {
         loader.style.opacity = '0';
@@ -1151,6 +1156,12 @@ setTimeout(() => {
             // Show logo and data display after loader is removed
             if (logoArea) logoArea.classList.add('loaded');
             if (dataDisplay) dataDisplay.classList.add('loaded');
+            // Show touch hint after a brief delay (mobile only)
+            if (touchHint) {
+                setTimeout(() => {
+                    touchHint.classList.add('loaded');
+                }, 300);
+            }
         }, 0); // Reduced from 1000ms to 0ms
     }
 }, 300); // Reduced from 1000ms to 300ms - total delay is now 800ms

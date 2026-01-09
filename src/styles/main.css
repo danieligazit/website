@@ -895,6 +895,7 @@ body.light-mode .contact-link:hover {
     body.panel-open #canvas-container,
     body.panel-open #touch-hint,
     body.panel-open .ui-layer,
+    body.panel-open .logo-area,
     body.panel-open nav {
         display: none !important;
     }
@@ -1068,7 +1069,13 @@ body.light-mode .performance-image {
     letter-spacing: 0.2em;
     z-index: 100;
     pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+}
+
+.touch-hint.loaded {
     animation: touchHintFade 3s ease-in-out infinite;
+    opacity: 1;
 }
 
 .touch-hint svg {
