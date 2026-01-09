@@ -907,19 +907,19 @@ body.light-mode .contact-link:hover {
     }
     
     .contact-content {
-        width: 100vw;
-        max-height: 100vh;
+        width: 90vw;
+        max-height: 80vh;
         padding: 1.5rem;
         position: absolute;
-        top: 0;
-        left: 0;
-        transform: none; /* Remove centering transform */
-        border: none;
-        border-radius: 0;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.95);
+        border: 1px solid var(--border-secondary);
+        border-radius: 4px;
     }
     
     .contact-panel.active .contact-content {
-        transform: none; /* Remove scale animation */
+        transform: translate(-50%, -50%) scale(1);
     }
     
     .contact-panel {
