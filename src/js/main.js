@@ -642,7 +642,7 @@ function navigate(path, pushState = true) {
     
     // If route doesn't exist, redirect to 404 page
     if (!route) {
-        window.location.href = '/404.html';
+        window.location.href = '/404-page.html';
         return;
     }
     
