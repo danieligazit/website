@@ -55,25 +55,52 @@
         </ul>
     </nav>
 
-    <!-- Works Panel -->
+    <!-- Works Panel - Split Layout for Desktop -->
     <div id="works-panel" class="works-panel">
         <div class="works-backdrop"></div>
-        <div class="works-content">
+        <div class="works-split-container">
+            <!-- Left sidebar: List of works -->
+            <div class="works-sidebar">
+                <div class="works-sidebar-header">
+                    <h2>Selected Works</h2>
+                    <button id="close-works" class="close-btn">✕</button>
+                </div>
+                <div class="works-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="album">Albums</button>
+                    <button class="filter-btn" data-filter="collaboration">Collaborations</button>
+                    <button class="filter-btn" data-filter="audiovisual">A/V</button>
+                    <button class="filter-btn" data-filter="performance">Performance</button>
+                </div>
+                <div id="works-nav" class="works-nav">
+                    <!-- Works navigation list will be inserted here -->
+                </div>
+            </div>
+            <!-- Right panel: Detail view -->
+            <div class="works-detail">
+                <div id="works-detail-content" class="works-detail-content">
+                    <!-- Selected work detail will be shown here -->
+                    <div class="works-detail-placeholder">
+                        <span>Select a work to view details</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile fallback: keeps original drawer structure -->
+        <div class="works-content works-mobile-only">
             <div class="works-header">
                 <h2>Selected Works</h2>
-                <button id="close-works" class="close-btn">✕</button>
+                <button class="close-btn close-works-mobile">✕</button>
             </div>
-
-            <div class="works-filters">
+            <div class="works-filters works-filters-mobile">
                 <button class="filter-btn active" data-filter="all">All</button>
                 <button class="filter-btn" data-filter="album">Albums</button>
                 <button class="filter-btn" data-filter="collaboration">Collaborations</button>
                 <button class="filter-btn" data-filter="audiovisual">A/V</button>
                 <button class="filter-btn" data-filter="performance">Performance</button>
             </div>
-
             <div id="works-list" class="works-list">
-                <!-- Works will be dynamically inserted here -->
+                <!-- Works will be dynamically inserted here (mobile) -->
             </div>
         </div>
     </div>
