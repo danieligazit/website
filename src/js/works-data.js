@@ -14,6 +14,7 @@ export const worksData = [
             type: 'album',
             id: '1772370903'
         },
+        description: 'Third studio album',
         coverArt: '/cloth_and_paper_cover.png',
         expandedByDefault: false
     },
@@ -32,6 +33,7 @@ export const worksData = [
             type: 'album',
             id: '1600107858'
         },
+        description: 'Second studio album',
         coverArt: '/edges.jpeg',
         expandedByDefault: false
     },
@@ -50,6 +52,7 @@ export const worksData = [
             type: 'album',
             id: '1459008594'
         },
+        description: 'First studio album',
         coverArt: '/say_yes.jpg',
         expandedByDefault: false
     },
@@ -134,6 +137,26 @@ export const worksData = [
         },
         coverArt: '/mc.lot.jpg',
         expandedByDefault: true // A/V work expanded by default
+    },
+    {
+        id: 'rit-to-all',
+        title: 'Rit to All',
+        year: 2025,
+        month: 'August',
+        type: 'curation',
+        tags: ['curation', 'performance', 'audiovisual'],
+        description: 'A curated evening of audiovisual and live performance, co-curated and performed',
+        longDescription: 'A multidisciplinary performance evening bringing together audiovisual art, installation and dance, featuring performances by <a href="https://yehezkelraz.com/" target="_blank">Yehezkel Raz</a>, Lia Dreyfus, <a href="https://giladashery.com/" target="_blank">Gilad Ashery</a>, Daniel Gazit, Maya Navot, Ofir Kunesh, and more.',
+        performanceImages: [
+            '/rit-to-all-daniel-1.jpg',
+            '/rit-to-all-daniel-2.jpg',
+            '/rit-to-all-daniel-3.jpg',
+            '/rit-to-all-lia.jpg',
+            '/rit-to-all-maya.jpg',
+            '/rit-to-all-yehezkel.jpg'
+        ],
+        coverArt: '/rit-to-all-daniel-1.jpg',
+        expandedByDefault: false
     }
 ];
  
