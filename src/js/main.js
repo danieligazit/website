@@ -532,13 +532,35 @@ const closeWorksBtn = document.getElementById('close-works');
 const worksList = document.getElementById('works-list');
 const filterBtns = document.querySelectorAll('.filter-btn');
 
+// Desktop split layout elements
+const worksNav = document.getElementById('works-nav');
+const worksDetailContent = document.getElementById('works-detail-content');
+const closeWorksMobileBtn = document.querySelector('.close-works-mobile');
+
 let currentFilter = 'all';
+let selectedWorkId = null;
+let isDesktopLayout = !isMobileDevice && window.innerWidth > 768;
+
+// Check if we should use desktop layout
+function checkLayoutMode() {
+    isDesktopLayout = !isMobileDevice && window.innerWidth > 768;
+}
+
+window.addEventListener('resize', () => {
+    const wasDesktop = isDesktopLayout;
+    checkLayoutMode();
+    // Re-render if layout mode changed
+    if (wasDesktop !== isDesktopLayout && worksPanel.classList.contains('active')) {
+        renderWorks(currentFilter);
+    }
+});
 
 // Open/Close Works Panel
 function openWorksPanel() {
     worksPanel.classList.add('active');
+    checkLayoutMode();
     renderWorks(currentFilter);
-    console.log('Opening works panel, isMobileDevice:', isMobileDevice);
+    console.log('Opening works panel, isMobileDevice:', isMobileDevice, 'isDesktopLayout:', isDesktopLayout);
     // Add class to body for mobile styling
     if (isMobileDevice) {
         document.body.classList.add('panel-open');
@@ -553,6 +575,8 @@ function closeWorksPanel(shouldNavigate = false) {
     document.querySelectorAll('.work-item.expanded').forEach(item => {
         item.classList.remove('expanded');
     });
+    // Reset selection
+    selectedWorkId = null;
     // Remove class from body (mobile only)
     if (isMobileDevice) {
         document.body.classList.remove('panel-open');
@@ -562,6 +586,11 @@ function closeWorksPanel(shouldNavigate = false) {
     if (shouldNavigate && window.location.pathname === '/works') {
         navigate('/', true);
     }
+}
+
+// Add mobile close button handler
+if (closeWorksMobileBtn) {
+    closeWorksMobileBtn.addEventListener('click', () => closeWorksPanel(true));
 }
 
 // Navigation Logic
@@ -624,7 +653,53 @@ function navigate(path, pushState = true) {
 window.addEventListener('popstate', (e) => {
     const path = window.location.pathname;
     navigate(path, false);
+    // Also handle hash for work selection
+    handleWorkHash();
 });
+
+// Handle hash changes for work selection
+window.addEventListener('hashchange', () => {
+    handleWorkHash();
+});
+
+// Handle work selection from URL hash
+function handleWorkHash() {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#')) {
+        const workId = hash.substring(1);
+        const work = worksData.find(w => w.id === workId);
+        if (work) {
+            // Make sure works panel is open
+            if (!worksPanel.classList.contains('active')) {
+                openWorksPanel();
+            }
+            
+            // Small delay to ensure panel is rendered
+            setTimeout(() => {
+                if (isDesktopLayout) {
+                    // Desktop: select the work
+                    selectWork(workId, false); // false = don't push state again
+                } else {
+                    // Mobile: scroll to the work item
+                    scrollToWorkItem(workId);
+                }
+            }, 100);
+        }
+    }
+}
+
+// Scroll to a work item on mobile
+function scrollToWorkItem(workId) {
+    const workItem = document.querySelector(`.work-item[data-work-id="${workId}"]`);
+    if (workItem) {
+        // Expand the item if it's not expanded
+        if (!workItem.classList.contains('expanded')) {
+            workItem.classList.add('expanded');
+        }
+        // Scroll into view
+        workItem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
 
 // Navigation Event Listeners
 document.getElementById('logo-btn').addEventListener('click', (e) => {
@@ -647,11 +722,25 @@ document.getElementById('nav-contact').addEventListener('click', (e) => {
 // Initialize route on page load
 navigate(window.location.pathname, false);
 
+// Handle work hash on initial load (after a short delay for panel to render)
+if (window.location.hash && window.location.pathname === '/works') {
+    setTimeout(() => {
+        handleWorkHash();
+    }, 200);
+}
+
 // Render works based on filter
 function renderWorks(filter = 'all') {
     const filteredWorks = filter === 'all' 
         ? worksData 
         : worksData.filter(work => work.tags.includes(filter));
+    
+    // Month order for sorting (null/undefined goes last)
+    const monthOrder = {
+        'January': 1, 'February': 2, 'March': 3, 'April': 4,
+        'May': 5, 'June': 6, 'July': 7, 'August': 8,
+        'September': 9, 'October': 10, 'November': 11, 'December': 12
+    };
     
     // Group by year
     const worksByYear = {};
@@ -662,32 +751,197 @@ function renderWorks(filter = 'all') {
         worksByYear[work.year].push(work);
     });
     
-    // Sort years descending
-    const years = Object.keys(worksByYear).sort((a, b) => b - a);
-    
-    // Build HTML
-    let html = '';
-    years.forEach(year => {
-        html += `
-            <div class="work-year-group">
-                <div class="work-year-header">${year}</div>
-                ${worksByYear[year].map(work => createWorkHTML(work)).join('')}
-            </div>
-        `;
-    });
-    
-    worksList.innerHTML = html;
-    
-    // Add event listeners to work items for click
-    document.querySelectorAll('.work-item').forEach(item => {
-        const header = item.querySelector('.work-item-header');
-        header.addEventListener('click', () => {
-            toggleWorkItem(item);
+    // Sort works within each year by month (descending - most recent first)
+    Object.keys(worksByYear).forEach(year => {
+        worksByYear[year].sort((a, b) => {
+            const monthA = monthOrder[a.month] || 0;
+            const monthB = monthOrder[b.month] || 0;
+            return monthB - monthA; // Descending (December before January)
         });
     });
     
+    // Sort years descending
+    const years = Object.keys(worksByYear).sort((a, b) => b - a);
+    
+    // Desktop split layout
+    if (isDesktopLayout && worksNav && worksDetailContent) {
+        renderWorksNav(years, worksByYear);
+        
+        // Get first work by visual order (first year descending, first work in that year)
+        const getFirstVisualWork = () => {
+            if (years.length > 0 && worksByYear[years[0]].length > 0) {
+                return worksByYear[years[0]][0];
+            }
+            return filteredWorks[0];
+        };
+        
+        // Check URL hash for pre-selected work
+        const hashWorkId = window.location.hash ? window.location.hash.substring(1) : null;
+        const hashWork = hashWorkId ? filteredWorks.find(w => w.id === hashWorkId) : null;
+        
+        // Select from hash (always takes priority), or existing selection, or first work
+        if (hashWork) {
+            // Hash always takes priority
+            selectWork(hashWork.id, false);
+        } else if (!selectedWorkId && filteredWorks.length > 0) {
+            const firstWork = getFirstVisualWork();
+            if (firstWork) selectWork(firstWork.id);
+        } else if (selectedWorkId) {
+            // Re-render selected work (might have changed with filter)
+            const stillExists = filteredWorks.find(w => w.id === selectedWorkId);
+            if (stillExists) {
+                selectWork(selectedWorkId);
+            } else if (filteredWorks.length > 0) {
+                const firstWork = getFirstVisualWork();
+                if (firstWork) selectWork(firstWork.id);
+            } else {
+                worksDetailContent.innerHTML = `
+                    <div class="works-detail-placeholder">
+                        <span>No works match this filter</span>
+                    </div>
+                `;
+            }
+        }
+    }
+    
+    // Mobile drawer layout (always render for mobile fallback)
+    if (worksList) {
+        let html = '';
+        years.forEach(year => {
+            html += `
+                <div class="work-year-group">
+                    <div class="work-year-header">${year}</div>
+                    ${worksByYear[year].map(work => createWorkHTML(work)).join('')}
+                </div>
+            `;
+        });
+        
+        worksList.innerHTML = html;
+        
+        // Add event listeners to work items for click
+        worksList.querySelectorAll('.work-item').forEach(item => {
+            const header = item.querySelector('.work-item-header');
+            header.addEventListener('click', () => {
+                toggleWorkItem(item);
+            });
+        });
+        
+        // Add event listeners to platform tabs
+        worksList.querySelectorAll('.platform-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.stopPropagation();
+                switchPlatform(tab);
+            });
+        });
+    }
+}
+
+// Render navigation list for desktop split layout
+function renderWorksNav(years, worksByYear) {
+    let html = '';
+    years.forEach(year => {
+        html += `<div class="works-nav-year">${year}</div>`;
+        worksByYear[year].forEach(work => {
+            const isActive = selectedWorkId === work.id;
+            const typeLabel = work.type.charAt(0).toUpperCase() + work.type.slice(1);
+            html += `
+                <div class="works-nav-item ${isActive ? 'active' : ''}" data-work-id="${work.id}">
+                    ${work.coverArt ? `
+                        <div class="works-nav-item-thumb">
+                            <img src="${work.coverArt}" alt="${work.title}">
+                        </div>
+                    ` : ''}
+                    <div class="works-nav-item-info">
+                        <div class="works-nav-item-title">${work.title}</div>
+                        <div class="works-nav-item-meta">
+                            <span>${work.month ? work.month + ' ' : ''}${work.year}</span>
+                            <span class="work-tag">${typeLabel}</span>
+                        </div>
+                        ${work.description ? `<div class="works-nav-item-desc">${work.description}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+    });
+    
+    worksNav.innerHTML = html;
+    
+    // Add click handlers
+    worksNav.querySelectorAll('.works-nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const workId = item.dataset.workId;
+            selectWork(workId);
+        });
+    });
+    
+    // Setup scroll spy (optional - scroll in nav to auto-select)
+    setupScrollSpy();
+}
+
+// Select a work and show its detail
+function selectWork(workId, pushState = true) {
+    selectedWorkId = workId;
+    
+    // Update nav active states
+    worksNav.querySelectorAll('.works-nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.workId === workId);
+    });
+    
+    // Find the work data
+    const work = worksData.find(w => w.id === workId);
+    if (!work) return;
+    
+    // Render detail view
+    renderWorkDetail(work);
+    
+    // Scroll nav item into view if needed
+    const activeNavItem = worksNav.querySelector(`.works-nav-item[data-work-id="${workId}"]`);
+    if (activeNavItem) {
+        activeNavItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    
+    // Update URL hash (without triggering hashchange again)
+    if (pushState && window.location.hash !== `#${workId}`) {
+        history.pushState({ path: '/works', workId }, '', `/works#${workId}`);
+    }
+}
+
+// Render detail view for a work
+function renderWorkDetail(work) {
+    const monthText = work.month ? `${work.month} ` : '';
+    const typeLabel = work.type.charAt(0).toUpperCase() + work.type.slice(1);
+    
+    const isAVWork = work.type === 'audiovisual';
+    const isPerformance = work.performanceImages && work.performanceImages.length > 0;
+    const isMusicWork = work.spotify || work.appleMusic?.id;
+    
+    // Build header section
+    let html = `
+        <div class="detail-work-header">
+            ${work.coverArt ? `
+                <div class="detail-cover-art">
+                    <img src="${work.coverArt}" alt="${work.title}">
+                </div>
+            ` : ''}
+            <div class="detail-info">
+                <div class="detail-title">${work.title}</div>
+                <div class="detail-meta">
+                    <span>${monthText}${work.year}</span>
+                    <span class="work-tag">${typeLabel}</span>
+                </div>
+                ${work.description ? `<div class="detail-description">${work.description}</div>` : ''}
+                ${work.longDescription ? `<div class="detail-description" style="margin-top: 0.5rem;">${work.longDescription}</div>` : ''}
+            </div>
+        </div>
+        <div class="detail-content">
+            ${renderDetailContent(work, isMusicWork, isAVWork, isPerformance)}
+        </div>
+    `;
+    
+    worksDetailContent.innerHTML = html;
+    
     // Add event listeners to platform tabs
-    document.querySelectorAll('.platform-tab').forEach(tab => {
+    worksDetailContent.querySelectorAll('.platform-tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
             e.stopPropagation();
             switchPlatform(tab);
@@ -695,14 +949,155 @@ function renderWorks(filter = 'all') {
     });
 }
 
+// Render the content section (embeds, gallery, etc.)
+function renderDetailContent(work, isMusicWork, isAVWork, isPerformance) {
+    const isLightMode = document.body.classList.contains('light-mode');
+    const spotifyTheme = isLightMode ? '1' : '0';
+    const appleMusicTheme = isLightMode ? 'light' : 'dark';
+    
+    let content = '';
+    
+    // Music embed (Spotify/Apple Music/Tidal/YouTube Music)
+    if (isMusicWork) {
+        const hasAppleMusic = work.appleMusic?.id;
+        const hasTidal = work.tidal?.id;
+        const hasYoutubeMusic = work.youtubeMusic?.id;
+        
+        // Determine heights based on type
+        const spotifyHeight = work.spotify?.type === 'album' ? 352 : 152;
+        const appleMusicHeight = work.appleMusic?.type === 'album' ? 450 : 175;
+        const tidalHeight = work.tidal?.type === 'album' ? 400 : 150;
+        
+        content += `
+            <div class="platform-tabs">
+                <button class="platform-tab active" data-platform="spotify">Spotify</button>
+                <button class="platform-tab" data-platform="apple" ${!hasAppleMusic ? 'disabled' : ''}>Apple Music</button>
+                <button class="platform-tab" data-platform="tidal" ${!hasTidal ? 'disabled' : ''}>Tidal</button>
+                <button class="platform-tab" data-platform="youtube-music" ${!hasYoutubeMusic ? 'disabled' : ''}>YouTube Music</button>
+            </div>
+            <div class="player-container">
+                <div class="player-content active" data-platform="spotify">
+                    <iframe 
+                        src="https://open.spotify.com/embed/${work.spotify.type}/${work.spotify.id}?utm_source=generator&theme=${spotifyTheme}"
+                        height="${spotifyHeight}"
+                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                        loading="lazy">
+                    </iframe>
+                </div>
+                ${hasAppleMusic ? `
+                    <div class="player-content" data-platform="apple">
+                        <iframe 
+                            src="https://embed.music.apple.com/us/${work.appleMusic.type}/${work.appleMusic.id}?app=music&theme=${appleMusicTheme}"
+                            height="${appleMusicHeight}"
+                            allow="autoplay *; encrypted-media *; fullscreen *"
+                            sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
+                            loading="lazy">
+                        </iframe>
+                    </div>
+                ` : ''}
+                ${hasTidal ? `
+                    <div class="player-content" data-platform="tidal">
+                        <iframe 
+                            src="https://embed.tidal.com/${work.tidal.type}s/${work.tidal.id}"
+                            height="${work.tidal.type === 'album' ? '450' : '96'}"
+                            allow="encrypted-media"
+                            loading="lazy">
+                        </iframe>
+                    </div>
+                ` : ''}
+                ${hasYoutubeMusic ? `
+                    <div class="player-content" data-platform="youtube-music">
+                        <div class="youtube-music-link-container">
+                            <img src="${work.coverArt}" alt="${work.title}" class="yt-music-cover">
+                            <div class="yt-music-info">
+                                <h3>${work.title}</h3>
+                                <p>Daniel Gazit</p>
+                            </div>
+                            <a href="https://music.youtube.com/playlist?list=${work.youtubeMusic.id}" 
+                               target="_blank" 
+                               rel="noopener noreferrer" 
+                               class="yt-music-btn">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                                </svg>
+                                Listen on YouTube Music
+                            </a>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    // A/V embed (YouTube/Vimeo)
+    if (isAVWork && work.platforms) {
+        const platforms = work.platforms;
+        const hasYoutube = platforms.youtube?.id;
+        const hasVimeo = platforms.vimeo?.id;
+        
+        let youtubeUrl = '';
+        if (hasYoutube) {
+            youtubeUrl = `https://www.youtube.com/embed/${platforms.youtube.id}`;
+            if (platforms.youtube.startTime) {
+                youtubeUrl += `?start=${platforms.youtube.startTime}`;
+            }
+        }
+        
+        content += `
+            <div class="player-container av-player">
+                ${hasYoutube ? `
+                    <div class="player-content active" data-platform="youtube">
+                        <iframe 
+                            src="${youtubeUrl}"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen
+                            loading="lazy">
+                        </iframe>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    // Performance gallery
+    if (isPerformance && work.performanceImages) {
+        content += `
+            <div class="performance-gallery">
+                ${work.performanceImages.map(img => `
+                    <div class="performance-image">
+                        <img src="${img}" alt="${work.title} performance">
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    return content;
+}
+
+// Setup scroll spy for nav (scroll in detail panel could trigger nav updates)
+function setupScrollSpy() {
+    // For now, scroll spy is click-based only
+    // Could add IntersectionObserver later for scroll-based selection
+}
+
 function toggleWorkItem(item) {
     const wasExpanded = item.classList.contains('expanded');
+    const workId = item.dataset.workId;
     
     // Simply toggle current item without affecting others
     if (wasExpanded) {
         item.classList.remove('expanded');
+        // Clear hash when collapsing
+        if (window.location.hash === `#${workId}`) {
+            history.pushState({ path: '/works' }, '', '/works');
+        }
     } else {
         item.classList.add('expanded');
+        // Update URL hash when expanding (mobile)
+        if (workId && window.location.hash !== `#${workId}`) {
+            history.pushState({ path: '/works', workId }, '', `/works#${workId}`);
+        }
     }
 }
 
@@ -731,13 +1126,20 @@ function createMusicWorkHTML(work, monthText, typeLabel) {
     
     const expandedClass = work.expandedByDefault ? 'expanded auto-expand' : '';
     
-    // Check if Apple Music is available
+    // Check platform availability
     const hasAppleMusic = work.appleMusic?.id;
+    const hasTidal = work.tidal?.id;
+    const hasYoutubeMusic = work.youtubeMusic?.id;
     
     // Determine current theme for embeds
     const isLightMode = document.body.classList.contains('light-mode');
     const spotifyTheme = isLightMode ? '1' : '0';
     const appleMusicTheme = isLightMode ? 'light' : 'dark';
+    
+    // Determine heights based on type
+    const spotifyHeight = work.spotify?.type === 'album' ? 352 : 152;
+    const appleMusicHeight = work.appleMusic?.type === 'album' ? 450 : 175;
+    const tidalHeight = work.tidal?.type === 'album' ? 400 : 150;
     
     return `
         <div class="work-item ${expandedClass}" data-work-id="${work.id}">
@@ -760,13 +1162,15 @@ function createMusicWorkHTML(work, monthText, typeLabel) {
                     <div class="platform-tabs">
                         <button class="platform-tab active" data-platform="spotify">Spotify</button>
                         <button class="platform-tab" data-platform="apple" ${!hasAppleMusic ? 'disabled' : ''}>Apple Music</button>
+                        <button class="platform-tab" data-platform="tidal" ${!hasTidal ? 'disabled' : ''}>Tidal</button>
+                        <button class="platform-tab" data-platform="youtube-music" ${!hasYoutubeMusic ? 'disabled' : ''}>YT Music</button>
                     </div>
                     <div class="player-container">
                         <div class="player-content active" data-platform="spotify">
                             <iframe 
                                 src="https://open.spotify.com/embed/${work.spotify.type}/${work.spotify.id}?utm_source=generator&theme=${spotifyTheme}" 
                                 width="100%" 
-                                height="${work.spotify.type === 'album' ? '352' : '152'}" 
+                                height="${spotifyHeight}" 
                                 frameBorder="0" 
                                 allowfullscreen="" 
                                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
@@ -778,11 +1182,43 @@ function createMusicWorkHTML(work, monthText, typeLabel) {
                                 <iframe 
                                     allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" 
                                     frameborder="0" 
-                                    height="${work.appleMusic.type === 'album' ? '450' : '175'}" 
+                                    height="${appleMusicHeight}" 
                                     style="width:100%;overflow:hidden;border-radius:10px;" 
                                     sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" 
                                     src="https://embed.music.apple.com/us/${work.appleMusic.type}/${work.appleMusic.id}?theme=${appleMusicTheme}">
                                 </iframe>
+                            </div>
+                        ` : ''}
+                        ${hasTidal ? `
+                            <div class="player-content" data-platform="tidal">
+                                <iframe 
+                                    src="https://embed.tidal.com/${work.tidal.type}s/${work.tidal.id}"
+                                    width="100%"
+                                    height="${work.tidal?.type === 'album' ? '450' : '96'}"
+                                    frameBorder="0"
+                                    allow="encrypted-media"
+                                    loading="lazy">
+                                </iframe>
+                            </div>
+                        ` : ''}
+                        ${hasYoutubeMusic ? `
+                            <div class="player-content" data-platform="youtube-music">
+                                <div class="youtube-music-link-container">
+                                    <img src="${work.coverArt}" alt="${work.title}" class="yt-music-cover">
+                                    <div class="yt-music-info">
+                                        <h3>${work.title}</h3>
+                                        <p>Daniel Gazit</p>
+                                    </div>
+                                    <a href="https://music.youtube.com/playlist?list=${work.youtubeMusic.id}" 
+                                       target="_blank" 
+                                       rel="noopener noreferrer" 
+                                       class="yt-music-btn">
+                                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                                        </svg>
+                                        Listen on YouTube Music
+                                    </a>
+                                </div>
                             </div>
                         ` : ''}
                     </div>
@@ -920,35 +1356,56 @@ function createAVWorkHTML(work, monthText, typeLabel) {
 }
 
 function switchPlatform(clickedTab) {
-    const workItem = clickedTab.closest('.work-item');
+    // Find the container - could be .work-item (mobile drawer) or .detail-content (desktop detail)
+    const container = clickedTab.closest('.work-item') || clickedTab.closest('.detail-content') || clickedTab.closest('.works-detail-content');
+    if (!container) return;
+    
     const platform = clickedTab.dataset.platform;
     
+    // Find the platform-tabs parent and its sibling player-container
+    const tabsParent = clickedTab.closest('.platform-tabs');
+    const playerContainer = tabsParent?.nextElementSibling;
+    
     // Update tabs
-    workItem.querySelectorAll('.platform-tab').forEach(tab => {
+    tabsParent?.querySelectorAll('.platform-tab').forEach(tab => {
         tab.classList.remove('active');
     });
     clickedTab.classList.add('active');
     
     // Update player content
-    workItem.querySelectorAll('.player-content').forEach(content => {
-        content.classList.remove('active');
-    });
-    workItem.querySelector(`.player-content[data-platform="${platform}"]`).classList.add('active');
+    if (playerContainer) {
+        playerContainer.querySelectorAll('.player-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        const targetContent = playerContainer.querySelector(`.player-content[data-platform="${platform}"]`);
+        if (targetContent) {
+            targetContent.classList.add('active');
+        }
+    }
 }
 
-// Filter functionality
-filterBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        currentFilter = btn.dataset.filter;
-        
-        // Update active filter
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        // Re-render works
-        renderWorks(currentFilter);
+// Filter functionality - sync all filter buttons (desktop sidebar + mobile drawer)
+function setupFilterButtons() {
+    const allFilterBtns = document.querySelectorAll('.filter-btn');
+    allFilterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentFilter = btn.dataset.filter;
+            
+            // Update active filter on ALL filter buttons (sync both layouts)
+            allFilterBtns.forEach(b => b.classList.remove('active'));
+            document.querySelectorAll(`.filter-btn[data-filter="${currentFilter}"]`).forEach(b => {
+                b.classList.add('active');
+            });
+            
+            // Reset selection when filter changes
+            selectedWorkId = null;
+            
+            // Re-render works
+            renderWorks(currentFilter);
+        });
     });
-});
+}
+setupFilterButtons();
 
 // Event listeners
 worksBackdrop.addEventListener('click', () => closeWorksPanel(true));

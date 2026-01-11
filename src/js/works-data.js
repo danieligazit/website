@@ -14,6 +14,14 @@ export const worksData = [
             type: 'album',
             id: '1772370903'
         },
+        tidal: {
+            type: 'album',
+            id: '391151793' // Add Tidal album ID
+        },
+        youtubeMusic: {
+            type: 'playlist',
+            id: 'OLAK5uy_mCmDYLMo2C5cmACnR81Y_GFNZ1KYLkO_s' // Add YouTube Music playlist ID
+        },
         description: 'Third studio album',
         coverArt: '/cloth_and_paper_cover.png',
         expandedByDefault: false
@@ -33,6 +41,14 @@ export const worksData = [
             type: 'album',
             id: '1600107858'
         },
+        tidal: {
+            type: 'album',
+            id: '208976912' // Add Tidal album ID
+        },
+        youtubeMusic: {
+            type: 'playlist',
+            id: 'OLAK5uy_m8PD7rJOsfFDzWGaoop2c7rx13q6gL34U' // Add YouTube Music playlist ID
+        },
         description: 'Second studio album',
         coverArt: '/edges.jpeg',
         expandedByDefault: false
@@ -51,6 +67,14 @@ export const worksData = [
         appleMusic: {
             type: 'album',
             id: '1459008594'
+        },
+        tidal: {
+            type: 'album',
+            id: '107247202' // Add Tidal album ID
+        },
+        youtubeMusic: {
+            type: 'playlist',
+            id: 'OLAK5uy_kuy-1J6mK2u-yH1HMoYzVB3a2-8yeaSWU' // Add YouTube Music playlist ID
         },
         description: 'First studio album',
         coverArt: '/say_yes.jpg',
@@ -72,6 +96,14 @@ export const worksData = [
             type: 'song',
             id: '1722917434'
         },
+        tidal: {
+            type: 'track',
+            id: '336984880' // Add Tidal track ID
+        },
+        youtubeMusic: {
+            type: 'video',
+            id: 'CGVAEkohKC4' // Add YouTube video ID
+        },
         coverArt: '/there_is_no_time.jpeg',
         expandedByDefault: false
     },
@@ -90,6 +122,14 @@ export const worksData = [
         appleMusic: {
             type: 'song',
             id: '1722917435'
+        },
+        tidal: {
+            type: 'track',
+            id: '336984881' // Add Tidal track ID
+        },
+        youtubeMusic: {
+            type: 'video',
+            id: 'ycP13x8OyeU' // Add YouTube video ID
         },
         coverArt: '/there_is_no_time.jpeg',
         expandedByDefault: false
@@ -143,8 +183,8 @@ export const worksData = [
         title: 'Rit to All',
         year: 2025,
         month: 'August',
-        type: 'curation',
-        tags: ['curation', 'performance', 'audiovisual'],
+        type: 'performance',
+        tags: ['collaboration', 'performance', 'audiovisual'],
         description: 'A curated evening of audiovisual and live performance, co-curated and performed',
         longDescription: 'A multidisciplinary performance evening bringing together audiovisual art, installation and dance, featuring performances by <a href="https://yehezkelraz.com/" target="_blank">Yehezkel Raz</a>, Lia Dreyfus, <a href="https://giladashery.com/" target="_blank">Gilad Ashery</a>, Daniel Gazit, Maya Navot, Ofir Kunesh, and more.',
         performanceImages: [
