@@ -1,2 +1,4 @@
-/*    /index.html   200
-
+/works    /index.html   200
+/works/*  /index.html   200
+/contact  /index.html   200
+/*        /index.html   200
