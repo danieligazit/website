@@ -72,6 +72,7 @@
     <nav>
         <ul>
             <li><a id="nav-works" href="/works">Selected Works</a></li>
+            <li><a id="nav-live" href="/live">Live</a></li>
             <li><a id="nav-contact" href="/contact">Contact</a></li>
         </ul>
     </nav>
@@ -167,6 +168,35 @@
             
             <!-- Copy notification toast -->
             <div id="copy-toast" class="copy-toast">Email copied to clipboard!</div>
+        </div>
+    </div>
+
+    <!-- Live Panel -->
+    <div id="live-panel" class="live-panel">
+        <div class="live-backdrop"></div>
+        <div class="live-content">
+            <div class="live-header">
+                <h2>Live</h2>
+                <button id="close-live" class="close-btn">✕</button>
+            </div>
+
+            <div class="live-body">
+                <!-- Coming Up Section -->
+                <div class="live-section">
+                    <h3 class="live-section-title">Coming Up</h3>
+                    <div id="upcoming-shows" class="shows-list">
+                        <!-- Upcoming shows will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Past Section -->
+                <div class="live-section">
+                    <h3 class="live-section-title">Past</h3>
+                    <div id="past-shows" class="shows-list">
+                        <!-- Past shows will be inserted here -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

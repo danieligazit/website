@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GPUComputationRenderer } from 'three/examples/jsm/misc/GPUComputationRenderer.js';
 import { worksData } from './works-data.js';
+import { showsData } from './shows-data.js';
 
 // Configuration
 const WIDTH = 1000;
@@ -384,9 +385,10 @@ elValAperture.innerText = currentAperture.toFixed(2);
 // Add mobile tilt debug display (only on mobile) - insert before the invert reality button
 // Router Configuration
 const routes = {
-    '/': { mode: 0, showWorks: false, showContact: false },
-    '/works': { mode: 3, showWorks: true, showContact: false },
-    '/contact': { mode: 0, showWorks: false, showContact: true }
+    '/': { mode: 0, showWorks: false, showContact: false, showLive: false },
+    '/works': { mode: 3, showWorks: true, showContact: false, showLive: false },
+    '/live': { mode: 0, showWorks: false, showContact: false, showLive: true },
+    '/contact': { mode: 0, showWorks: false, showContact: true, showLive: false }
 };
 
 // ========================================
@@ -453,6 +455,88 @@ if (closeContactBtn) closeContactBtn.addEventListener('click', () => closeContac
 
 // ========================================
 // END CONTACT PANEL FUNCTIONALITY
+// ========================================
+
+// ========================================
+// LIVE PANEL FUNCTIONALITY
+// ========================================
+
+const livePanel = document.getElementById('live-panel');
+const liveBackdrop = document.querySelector('.live-backdrop');
+const closeLiveBtn = document.getElementById('close-live');
+const upcomingShowsContainer = document.getElementById('upcoming-shows');
+const pastShowsContainer = document.getElementById('past-shows');
+
+// Open/Close Live Panel
+function openLivePanel() {
+    livePanel.classList.add('active');
+    renderShows();
+    console.log('Opening live panel, isMobileDevice:', isMobileDevice);
+    // Add class to body for mobile styling
+    if (isMobileDevice) {
+        document.body.classList.add('panel-open');
+    }
+}
+
+function closeLivePanel(shouldNavigate = false) {
+    if (!livePanel) return;
+    livePanel.classList.remove('active');
+    // Remove class from body (mobile only)
+    if (isMobileDevice) {
+        document.body.classList.remove('panel-open');
+    }
+    
+    // Navigate back to home if we're on /live and explicitly requested
+    if (shouldNavigate && window.location.pathname === '/live') {
+        navigate('/', true);
+    }
+}
+
+// Format date for display (YYYY-MM-DD to DD.MM.YYYY)
+function formatShowDate(dateStr) {
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+}
+
+// Render shows lists
+function renderShows() {
+    // Render upcoming shows
+    if (upcomingShowsContainer) {
+        if (showsData.upcoming.length === 0) {
+            upcomingShowsContainer.innerHTML = '<div class="no-shows-message">No upcoming shows announced yet. Stay tuned!</div>';
+        } else {
+            upcomingShowsContainer.innerHTML = showsData.upcoming.map(show => `
+                <div class="show-item upcoming">
+                    <span class="show-date">${formatShowDate(show.date)}</span>
+                    <span class="show-venue">${show.venue}</span>
+                    <span class="show-city">${show.city}</span>
+                    ${show.ticketLink ? `<a href="${show.ticketLink}" target="_blank" rel="noopener noreferrer" class="show-ticket-link">Tickets</a>` : ''}
+                </div>
+            `).join('');
+        }
+    }
+    
+    // Render past shows
+    if (pastShowsContainer) {
+        pastShowsContainer.innerHTML = showsData.past.map(show => `
+            <div class="show-item">
+                <span class="show-date">${formatShowDate(show.date)}</span>
+                <span class="show-venue">${show.venue}</span>
+                <span class="show-city">${show.city}</span>
+            </div>
+        `).join('');
+    }
+}
+
+// Event listeners
+if (liveBackdrop) liveBackdrop.addEventListener('click', () => closeLivePanel(true));
+if (closeLiveBtn) closeLiveBtn.addEventListener('click', () => closeLivePanel(true));
+
+// ========================================
+// END LIVE PANEL FUNCTIONALITY
 // ========================================
 
 // ========================================
@@ -594,7 +678,7 @@ if (closeWorksMobileBtn) {
 }
 
 // Navigation Logic
-function setAttractor(mode, pushState = true, showWorks = false, showContact = false) {
+function setAttractor(mode, pushState = true, showWorks = false, showContact = false, showLive = false) {
     currentMode = mode;
     
     // Update Shaders
@@ -608,6 +692,7 @@ function setAttractor(mode, pushState = true, showWorks = false, showContact = f
     if (showWorks) {
         openWorksPanel();
         closeContactPanel();
+        closeLivePanel();
         document.getElementById('nav-works').classList.add('active');
     } else {
         closeWorksPanel();
@@ -617,20 +702,33 @@ function setAttractor(mode, pushState = true, showWorks = false, showContact = f
     if (showContact) {
         openContactPanel();
         closeWorksPanel();
+        closeLivePanel();
         document.getElementById('nav-contact').classList.add('active');
     } else {
         closeContactPanel();
     }
     
+    // Handle live panel
+    if (showLive) {
+        openLivePanel();
+        closeWorksPanel();
+        closeContactPanel();
+        document.getElementById('nav-live').classList.add('active');
+    } else {
+        closeLivePanel();
+    }
+    
     // Find and activate current nav item based on mode
-    if (!showWorks && !showContact) {
-        const path = Object.keys(routes).find(p => routes[p].mode === mode && !routes[p].showWorks && !routes[p].showContact);
+    if (!showWorks && !showContact && !showLive) {
+        const path = Object.keys(routes).find(p => routes[p].mode === mode && !routes[p].showWorks && !routes[p].showContact && !routes[p].showLive);
         
         if (path && pushState) {
             history.pushState({ path }, '', path);
         }
     } else if (showWorks && pushState) {
         history.pushState({ path: '/works' }, '', '/works');
+    } else if (showLive && pushState) {
+        history.pushState({ path: '/live' }, '', '/live');
     } else if (showContact && pushState) {
         history.pushState({ path: '/contact' }, '', '/contact');
     }
@@ -646,7 +744,7 @@ function navigate(path, pushState = true) {
         return;
     }
     
-    setAttractor(route.mode, pushState, route.showWorks, route.showContact);
+    setAttractor(route.mode, pushState, route.showWorks, route.showContact, route.showLive);
 }
 
 // Handle browser back/forward
@@ -712,6 +810,11 @@ document.getElementById('logo-btn').addEventListener('click', (e) => {
 document.getElementById('nav-works').addEventListener('click', (e) => {
     e.preventDefault();
     navigate('/works');
+});
+
+document.getElementById('nav-live').addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('/live');
 });
 
 document.getElementById('nav-contact').addEventListener('click', (e) => {
