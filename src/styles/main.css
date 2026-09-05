@@ -35,7 +35,7 @@
        Declared once per theme on purpose: a custom property inherits its already-substituted
        value, so defining this only on :root would bake in the dark --bg-primary and keep
        painting a dark halo on the light theme. */
-    --chrome-halo: 0 0 4px #020204, 0 0 9px #020204, 0 0 16px #020204, 0 0 26px #020204;
+    --chrome-halo: 0 0 2px #020204, 0 0 3px #020204;
     --border-primary: rgba(255, 255, 255, 0.1);
     --border-secondary: rgba(255, 255, 255, 0.2);
     --hover-bg: rgba(255, 255, 255, 0.05);
@@ -56,7 +56,7 @@ body.light-mode {
     --text-quaternary: #70707c;
     --accent: #a3410a;
     --accent-dim: rgba(163, 65, 10, 0.28);
-    --chrome-halo: 0 0 4px #f5f5f7, 0 0 9px #f5f5f7, 0 0 16px #f5f5f7, 0 0 26px #f5f5f7;
+    --chrome-halo: 0 0 2px #f5f5f7, 0 0 3px #f5f5f7;
     --border-primary: rgba(0, 0, 0, 0.1);
     --border-secondary: rgba(0, 0, 0, 0.2);
     --hover-bg: rgba(0, 0, 0, 0.03);
@@ -219,8 +219,10 @@ body.light-mode nav a.active {
     line-height: 1.6;
     opacity: 0;
     transition: opacity 1s ease, color 0.3s ease;
+    /* No scroll container here: the readout is a handful of short rows, and an overflow
+       context clips the plate behind it and raises a scrollbar over the artwork. */
     max-height: calc(100vh - 8rem);
-    overflow-y: auto;
+    overflow: visible;
 }
 
 .data-display.loaded {
@@ -2445,4 +2447,75 @@ body.light-mode nav a.active {
 
 .invert-reality:hover {
     text-shadow: var(--chrome-halo), 0 0 10px var(--accent-dim);
+}
+
+
+/* --- Contour, not glow ---------------------------------------------------------------
+   A soft shadow large enough to survive a dense cluster of particles reads as a glowing
+   blob around the text. A hard contour does the same separating job with no bloom at all:
+   paint-order draws the stroke behind the fill, so the letterform stays crisp and simply
+   gains an outline in the background colour. The tight --chrome-halo above stays as the
+   fallback for engines without paint-order, where a stroke would paint over the glyph and
+   hollow it out. */
+@supports (paint-order: stroke) {
+    nav a,
+    .logo-area h1,
+    .logo-area .subtitle,
+    .data-display,
+    .touch-hint,
+    body.light-mode nav a,
+    body.light-mode .logo-area h1,
+    body.light-mode .logo-area .subtitle,
+    body.light-mode .data-display,
+    body.light-mode .touch-hint {
+        paint-order: stroke fill;
+        -webkit-text-stroke: 3px var(--bg-primary);
+        text-shadow: none;
+    }
+
+    /* The accent glow on the active item is small enough not to bloom, so it survives. */
+    nav a:hover,
+    nav a.active,
+    body.light-mode nav a:hover,
+    body.light-mode nav a.active {
+        text-shadow: 0 0 10px var(--accent-dim);
+    }
+}
+
+/* --- A plate under each cluster, rather than a halo around each glyph -----------------
+   One large, smooth gradient reads as depth in the image; a small one around every letter
+   reads as an artefact. Sized well past the text so the falloff is never visible as an
+   edge. */
+nav,
+.logo-area,
+.data-display {
+    isolation: isolate;
+}
+
+nav::before,
+.logo-area::before,
+.data-display::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.72;
+}
+
+nav::before {
+    inset: -2rem -2.5rem -2rem -4rem;
+    background: radial-gradient(ellipse at 82% 50%, var(--bg-primary) 0%,
+                transparent 72%);
+}
+
+.logo-area::before {
+    inset: -2rem -4rem -2rem -2.5rem;
+    background: radial-gradient(ellipse at 18% 50%, var(--bg-primary) 0%,
+                transparent 72%);
+}
+
+.data-display::before {
+    inset: -1.5rem -3.5rem -1.5rem -2.5rem;
+    background: radial-gradient(ellipse at 20% 50%, var(--bg-primary) 0%,
+                transparent 74%);
 }
