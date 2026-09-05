@@ -16,7 +16,7 @@
     --text-primary: #fff;
     --text-secondary: #b0b0b0;
     --text-tertiary: #888;
-    --text-quaternary: #666;
+    --text-quaternary: #757575;
     --border-primary: rgba(255, 255, 255, 0.1);
     --border-secondary: rgba(255, 255, 255, 0.2);
     --hover-bg: rgba(255, 255, 255, 0.05);
@@ -34,7 +34,7 @@ body.light-mode {
     --text-primary: #1d1d1f;
     --text-secondary: #424245;
     --text-tertiary: #6e6e73;
-    --text-quaternary: #86868b;
+    --text-quaternary: #74747a;
     --border-primary: rgba(0, 0, 0, 0.1);
     --border-secondary: rgba(0, 0, 0, 0.2);
     --hover-bg: rgba(0, 0, 0, 0.03);
@@ -224,6 +224,20 @@ body.light-mode nav a.active {
     opacity: 0.5;
     transition: opacity 0.3s ease, text-shadow 0.3s ease;
     pointer-events: auto;
+    /* It is a <button> so it can be reached and fired from the keyboard; strip the browser
+       chrome so it still reads as part of the telemetry line. */
+    padding: 0;
+    background: none;
+    border: none;
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: left;
+}
+
+.invert-reality:focus-visible {
+    opacity: 1;
+    outline: 1px solid var(--text-primary);
+    outline-offset: 3px;
 }
 
 .invert-reality.pulse {
@@ -276,12 +290,18 @@ body.light-mode .invert-reality:hover {
     z-index: 20;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    /* visibility, not just pointer-events: without it the closed panel keeps its place in
+       the tab order and the accessibility tree, so keyboard and screen-reader users reach
+       invisible controls. Delayed so it does not cut the fade short. */
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
 }
 
 .works-panel.active {
     pointer-events: auto;
     opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0s linear 0s;
 }
 
 .works-backdrop {
@@ -618,12 +638,18 @@ body.light-mode .platform-tab.active {
     z-index: 20;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    /* visibility, not just pointer-events: without it the closed panel keeps its place in
+       the tab order and the accessibility tree, so keyboard and screen-reader users reach
+       invisible controls. Delayed so it does not cut the fade short. */
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
 }
 
 .contact-panel.active {
     pointer-events: auto;
     opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0s linear 0s;
 }
 
 .contact-backdrop {
@@ -881,12 +907,18 @@ body.light-mode .contact-link:hover {
     z-index: 20;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    /* visibility, not just pointer-events: without it the closed panel keeps its place in
+       the tab order and the accessibility tree, so keyboard and screen-reader users reach
+       invisible controls. Delayed so it does not cut the fade short. */
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s linear 0.3s;
 }
 
 .live-panel.active {
     pointer-events: auto;
     opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0s linear 0s;
 }
 
 .live-backdrop {
@@ -1002,7 +1034,7 @@ body.light-mode .contact-link:hover {
 
 .show-date {
     font-size: 0.85rem;
-    color: var(--text-quaternary);
+    color: var(--text-tertiary);
     font-family: 'Courier New', Courier, monospace;
     min-width: 100px;
     flex-shrink: 0;
@@ -1606,7 +1638,17 @@ body.light-mode .contact-link:hover {
     nav ul {
         flex-direction: column;
         align-items: flex-end;
-        gap: 0.5rem;
+        gap: 0;
+    }
+
+    /* Primary navigation on mobile measured 19px tall. Padding grows the tap target to
+       ~44px without changing the type size; the existing li margin and ul gap are folded
+       into it so the visual rhythm stays close to what it was. */
+    nav li { margin-bottom: 0; }
+
+    nav a {
+        display: inline-block;
+        padding: 0.8rem 0;
     }
     
 }
@@ -2054,7 +2096,8 @@ body.fragments-scrubbing #canvas-container {
 
 /* Date leads: it is the primary way the fragments are ordered, so it reads first. */
 .fragments-meta-date {
-    color: var(--text-quaternary);
+    /* A date is content, so it uses the tertiary token, which clears AA in both themes. */
+    color: var(--text-tertiary);
     letter-spacing: 0.12em;
 }
 

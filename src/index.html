@@ -64,7 +64,7 @@
             <div class="data-tech">FPS: <span class="value" id="val-fps">60</span></div>
             <div class="data-tech">PARTICLES: <span class="value" id="val-points">8.00M</span></div>
             <div class="data-tech">LEVEL OF DETAIL: <span class="value" id="val-quality">100%</span></div>
-            <div><span class="value invert-reality" id="nav-theme">→ INVERT</span></div>
+            <div><button type="button" class="value invert-reality" id="nav-theme">→ INVERT</button></div>
         </div>
     </div>
 
@@ -80,7 +80,7 @@
 
     <!-- Fragments grid: revealed by scrolling down from the landing page -->
     <div id="fragments-grid-panel" class="fragments-grid-panel" hidden>
-        <button id="close-fragments-grid" class="close-btn fragments-grid-close">✕</button>
+        <button id="close-fragments-grid" aria-label="Close fragments" class="close-btn fragments-grid-close">✕</button>
         <div class="fragments-grid-inner">
             <div class="fragments-grid-header">
                 <h2>Fragments</h2>
@@ -98,7 +98,7 @@
         <div class="fragments-stage">
             <div class="fragments-header">
                 <div class="fragments-progress" id="fragments-progress"></div>
-                <button id="close-fragments" class="close-btn fragments-close">✕</button>
+                <button id="close-fragments" aria-label="Close fragment" class="close-btn fragments-close">✕</button>
             </div>
 
             <div class="fragments-viewer">
@@ -129,7 +129,7 @@
             <div class="works-sidebar">
                 <div class="works-sidebar-header">
                     <h2>Selected Works</h2>
-                    <button id="close-works" class="close-btn">✕</button>
+                    <button id="close-works" aria-label="Close selected works" class="close-btn">✕</button>
                 </div>
                 <div class="works-filters">
                     <button class="filter-btn active" data-filter="all">All</button>
@@ -156,7 +156,7 @@
         <div class="works-content works-mobile-only">
             <div class="works-header">
                 <h2>Selected Works</h2>
-                <button class="close-btn close-works-mobile">✕</button>
+                <button class="close-btn close-works-mobile" aria-label="Close selected works">✕</button>
             </div>
             <div class="works-filters works-filters-mobile">
                 <button class="filter-btn active" data-filter="all">All</button>
@@ -177,7 +177,7 @@
         <div class="contact-content">
             <div class="contact-header">
                 <h2>Contact</h2>
-                <button id="close-contact" class="close-btn">✕</button>
+                <button id="close-contact" aria-label="Close contact" class="close-btn">✕</button>
             </div>
 
             <div class="contact-body">
@@ -221,7 +221,7 @@
         <div class="live-content">
             <div class="live-header">
                 <h2>Live</h2>
-                <button id="close-live" class="close-btn">✕</button>
+                <button id="close-live" aria-label="Close live" class="close-btn">✕</button>
             </div>
 
             <div class="live-body">
