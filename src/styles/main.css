@@ -2408,28 +2408,41 @@ nav a:hover { color: var(--accent); }
 }
 
 
-/* --- Legibility of the chrome, solved in the artwork rather than on top of it ---------
-   Three earlier attempts all worked the same way: put something between the type and the
-   field — a glow, a gradient plate, a blurred panel. Every one of them either smeared
-   (anything soft enough to cover a dense cluster is big enough to read as a smudge) or
-   covered the work (anything hard enough not to smear reads as a UI panel bolted over it).
+/* --- Legibility of the chrome, solved in the type -------------------------------------
+   Four attempts put something between the type and the particle field — a glow, a plate,
+   a blurred panel, then a falloff in the shader. The first three smeared or read as UI
+   bolted over the artwork; the fourth worked but altered the artwork to do it. All of them
+   are gone. The field is untouched, and the chrome has to hold on its own terms.
 
-   The field is now thinned towards the corners in the particle shader itself, so the four
-   places the chrome occupies are genuinely empty background. That leaves nothing for the
-   type to fight, which means the type needs no treatment at all: no shadow, no stroke, no
-   backing. It just has to be confident enough to look deliberate.
+   What actually fights the type here is spatial frequency, not contrast. In dark mode the
+   nav is already #fff, so there is no luminance headroom left to find — the field simply
+   contains pixels at every value, and no single colour beats all of them. But the speckle
+   grain is two or three pixels across, and mono at 11px has stems about one pixel wide:
+   the type and the noise are the same size, so they mix. Making the letterforms coarser
+   than the grain separates them without covering anything.
 
-   `--chrome-halo` is left defined as a one-line insurance dial. If a cluster ever does
-   reach far enough into a corner to trouble the type, add it back on the selectors below;
-   raising `uQuietCorners` in main.js is the better fix. */
+   So: more weight, slightly more size, more tracking. Each one is small on its own; the
+   point is that they all push in the same direction. */
 
-/* Was --text-secondary, a mid grey on a mid-ground: the item you are meant to click was
-   the faintest thing in the corner. */
+/* Was 100 — a hairline at any size, and hairlines are exactly what noise eats. 300 keeps
+   the wordmark airy while roughly tripling the mass of every stem. */
+.logo-area h1 {
+    font-weight: 300;
+}
+
+.logo-area .subtitle {
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+/* Was --text-secondary at 400: the thing you are meant to click was the faintest text in
+   the corner. Tracking opens the gaps between glyphs so speckle landing between two
+   letters cannot bridge them. */
 nav a {
     color: var(--text-primary);
-    font-weight: 500;
-    font-size: 0.95rem;
-    letter-spacing: 0.14em;
+    font-weight: 600;
+    font-size: 1.02rem;
+    letter-spacing: 0.18em;
     text-shadow: none;
 }
 
@@ -2445,6 +2458,17 @@ body.light-mode nav a.active {
     text-shadow: none;
 }
 
+/* The telemetry was grey-on-grey at 11px, which is the worst case of the frequency problem
+   above: it read as texture rather than as text. Bigger, heavier, wider-tracked, and one
+   step up the grey ramp. */
+.data-display {
+    color: var(--text-tertiary);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    line-height: 1.75;
+}
+
 .logo-area h1,
 .logo-area .subtitle,
 .data-display,
@@ -2456,21 +2480,16 @@ body.light-mode .data-display .value {
     text-shadow: none;
 }
 
-/* The one exception. The mobile touch hint sits dead centre, which is the densest part of
-   the field and the only place the corner falloff deliberately leaves alone. It is small,
-   it appears once and fades, so the halo it needs never sits on screen long enough to
-   read as a treatment. */
-.touch-hint,
-body.light-mode .touch-hint {
-    text-shadow: var(--chrome-halo);
-}
-
-/* The telemetry was grey-on-grey; the three rows that answer to the cursor are the point
-   of it, so they get read as text rather than as texture. */
-.data-display {
-    color: var(--text-tertiary);
-}
-
 .invert-reality:hover {
     text-shadow: none;
+}
+
+/* The one exception to "no treatment". The mobile touch hint sits dead centre, over the
+   densest part of the field, and it is the only piece of chrome with nowhere quieter to
+   be. It shows once and fades, so its halo never stays on screen long enough to read as
+   a treatment. */
+.touch-hint,
+body.light-mode .touch-hint {
+    font-weight: 500;
+    text-shadow: var(--chrome-halo);
 }
