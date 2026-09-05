@@ -36,6 +36,11 @@
        value, so defining this only on :root would bake in the dark --bg-primary and keep
        painting a dark halo on the light theme. */
     --chrome-halo: 0 0 2px #020204, 0 0 3px #020204;
+    /* The panel the chrome sits on. Translucent enough that the field still moves behind
+       it, opaque enough that mono type at 11px holds. */
+    --chrome-surface: rgba(4, 4, 8, 0.5);
+    --chrome-surface-solid: rgba(4, 4, 8, 0.82);
+    --chrome-edge: rgba(255, 255, 255, 0.09);
     --border-primary: rgba(255, 255, 255, 0.1);
     --border-secondary: rgba(255, 255, 255, 0.2);
     --hover-bg: rgba(255, 255, 255, 0.05);
@@ -57,6 +62,9 @@ body.light-mode {
     --accent: #a3410a;
     --accent-dim: rgba(163, 65, 10, 0.28);
     --chrome-halo: 0 0 2px #f5f5f7, 0 0 3px #f5f5f7;
+    --chrome-surface: rgba(248, 248, 250, 0.8);
+    --chrome-surface-solid: rgba(248, 248, 250, 0.92);
+    --chrome-edge: rgba(0, 0, 0, 0.08);
     --border-primary: rgba(0, 0, 0, 0.1);
     --border-secondary: rgba(0, 0, 0, 0.2);
     --hover-bg: rgba(0, 0, 0, 0.03);
@@ -2450,13 +2458,58 @@ body.light-mode nav a.active {
 }
 
 
-/* --- Contour, not glow ---------------------------------------------------------------
-   A soft shadow large enough to survive a dense cluster of particles reads as a glowing
-   blob around the text. A hard contour does the same separating job with no bloom at all:
-   paint-order draws the stroke behind the fill, so the letterform stays crisp and simply
-   gains an outline in the background colour. The tight --chrome-halo above stays as the
-   fallback for engines without paint-order, where a stroke would paint over the glyph and
-   hollow it out. */
+/* --- A surface, not an effect ---------------------------------------------------------
+   Both of the previous attempts tried to separate the text from the field by softening
+   something: a glow around the glyph, then a gradient wash behind the cluster. Anything
+   soft enough to cover a dense cluster is large enough to read as smear. So instead the
+   chrome gets an actual surface with a defined edge — the field carries on behind it,
+   blurred, and the type sits on something solid. Hard boundary, no falloff, nothing to
+   smear.
+
+   The stroke drops to a hairline: it is there to keep the glyph from dissolving into its
+   own backing when the field behind is bright, not to do the separating. Three pixels on
+   11px mono closed the counters and fattened every letter, which is what looked smudged. */
+nav,
+.logo-area,
+.data-display {
+    background: var(--chrome-surface);
+    border: 1px solid var(--chrome-edge);
+    border-radius: 3px;
+    backdrop-filter: blur(16px) saturate(0.65);
+    -webkit-backdrop-filter: blur(16px) saturate(0.65);
+}
+
+/* Padding grows the panel around the text; the fixed offsets shrink by the same amount so
+   the type stays exactly where it was. */
+nav {
+    padding: 0.9rem 1.1rem;
+    top: 1.1rem;
+    right: 0.9rem;
+}
+
+.logo-area {
+    padding: 0.9rem 1.2rem;
+    top: 1.1rem;
+    left: 0.8rem;
+}
+
+.data-display {
+    padding: 0.75rem 1rem;
+    bottom: 1.25rem;
+    left: 1rem;
+}
+
+/* Without a backdrop filter the panel is just a flat tint, so it has to be opaque enough
+   to stand on its own. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    nav,
+    .logo-area,
+    .data-display,
+    .touch-hint {
+        background: var(--chrome-surface-solid);
+    }
+}
+
 @supports (paint-order: stroke) {
     nav a,
     .logo-area h1,
@@ -2469,7 +2522,7 @@ body.light-mode nav a.active {
     body.light-mode .data-display,
     body.light-mode .touch-hint {
         paint-order: stroke fill;
-        -webkit-text-stroke: 3px var(--bg-primary);
+        -webkit-text-stroke: 0.6px var(--bg-primary);
         text-shadow: none;
     }
 
@@ -2482,40 +2535,35 @@ body.light-mode nav a.active {
     }
 }
 
-/* --- A plate under each cluster, rather than a halo around each glyph -----------------
-   One large, smooth gradient reads as depth in the image; a small one around every letter
-   reads as an artefact. Sized well past the text so the falloff is never visible as an
-   edge. */
-nav,
-.logo-area,
-.data-display {
-    isolation: isolate;
+/* The touch hint sits in the busiest part of the frame, so it gets a panel too. */
+.touch-hint {
+    padding: 1rem 1.4rem;
+    background: var(--chrome-surface);
+    border: 1px solid var(--chrome-edge);
+    border-radius: 3px;
+    backdrop-filter: blur(16px) saturate(0.65);
+    -webkit-backdrop-filter: blur(16px) saturate(0.65);
 }
 
-nav::before,
-.logo-area::before,
-.data-display::before {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    pointer-events: none;
-    opacity: 0.72;
-}
+@media (max-width: 768px) {
+    nav {
+        padding: 0.35rem 0.9rem;
+        /* The desktop rule above sets a top offset; on mobile the nav is bottom-anchored,
+           so it has to be released or the panel stretches the height of the screen. */
+        top: auto;
+        bottom: 0.7rem;
+        right: 0.7rem;
+    }
 
-nav::before {
-    inset: -2rem -2.5rem -2rem -4rem;
-    background: radial-gradient(ellipse at 82% 50%, var(--bg-primary) 0%,
-                transparent 72%);
-}
+    .logo-area {
+        padding: 0.7rem 0.9rem;
+        top: 0.6rem;
+        left: 0.6rem;
+    }
 
-.logo-area::before {
-    inset: -2rem -4rem -2rem -2.5rem;
-    background: radial-gradient(ellipse at 18% 50%, var(--bg-primary) 0%,
-                transparent 72%);
-}
-
-.data-display::before {
-    inset: -1.5rem -3.5rem -1.5rem -2.5rem;
-    background: radial-gradient(ellipse at 20% 50%, var(--bg-primary) 0%,
-                transparent 74%);
+    .data-display {
+        padding: 0.6rem 0.8rem;
+        left: 0.6rem;
+        bottom: calc(1rem + 0.2rem);
+    }
 }
