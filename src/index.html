@@ -30,7 +30,7 @@
 <body>
     <script>
         // Apply theme class immediately to body
-        const savedTheme = localStorage.getItem('theme') || 'dark';
+        const savedTheme = localStorage.getItem('theme') || 'light';
         if (savedTheme === 'light') {
             document.body.classList.add('light-mode');
         }
@@ -64,18 +64,63 @@
             <div class="data-tech">FPS: <span class="value" id="val-fps">60</span></div>
             <div class="data-tech">PARTICLES: <span class="value" id="val-points">8.00M</span></div>
             <div class="data-tech">LEVEL OF DETAIL: <span class="value" id="val-quality">100%</span></div>
-            <div><span class="value invert-reality" id="nav-theme">→ INVERT REALITY</span></div>
+            <div><span class="value invert-reality" id="nav-theme">→ INVERT</span></div>
         </div>
     </div>
 
     <!-- Navigation separate from ui-layer so it can be blurred -->
     <nav>
         <ul>
+            <li><a id="nav-fragments" href="/fragments">Fragments</a></li>
             <li><a id="nav-works" href="/works">Selected Works</a></li>
             <li><a id="nav-live" href="/live">Live</a></li>
             <li><a id="nav-contact" href="/contact">Contact</a></li>
         </ul>
     </nav>
+
+    <!-- Scroll affordance: the landing page's only hint that the video work is there -->
+    <button id="fragments-hint" class="fragments-hint" hidden aria-label="Show fragments">
+        <svg class="fragments-hint-arrow" width="18" height="24" viewBox="0 0 18 24" fill="none"
+             stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+            <path d="M9 3v17M2.5 13.5L9 20l6.5-6.5"/>
+        </svg>
+    </button>
+
+    <!-- Fragments grid: revealed by scrolling down from the landing page -->
+    <div id="fragments-grid-panel" class="fragments-grid-panel" hidden>
+        <button id="close-fragments-grid" class="close-btn fragments-grid-close">✕</button>
+        <div class="fragments-grid-inner">
+            <div class="fragments-grid-header">
+                <h2>Fragments</h2>
+                <span class="fragments-grid-count" id="fragments-count"></span>
+            </div>
+            <div class="fragments-grid" id="fragments-grid">
+                <!-- Tiles inserted by fragments.js -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Fragments Panel: fullscreen sequential reader -->
+    <div id="fragments-panel" class="fragments-panel">
+        <div class="fragments-backdrop"></div>
+        <div class="fragments-stage">
+            <div class="fragments-progress" id="fragments-progress"></div>
+            <button id="close-fragments" class="close-btn fragments-close">✕</button>
+
+            <div class="fragments-viewer">
+                <button class="fragments-arrow" id="fragments-prev" aria-label="Previous fragment">‹</button>
+                <div class="fragments-video-wrap">
+                    <video id="fragments-video" class="fragments-video" playsinline muted preload="auto"></video>
+                    <button id="fragments-sound" class="fragments-sound">Sound off</button>
+                </div>
+                <button class="fragments-arrow" id="fragments-next" aria-label="Next fragment">›</button>
+            </div>
+
+            <div class="fragments-meta" id="fragments-meta">
+                <!-- Populated by fragments.js -->
+            </div>
+        </div>
+    </div>
 
     <!-- Works Panel - Split Layout for Desktop -->
     <div id="works-panel" class="works-panel">

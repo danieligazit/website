@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { GPUComputationRenderer } from 'three/examples/jsm/misc/GPUComputationRenderer.js';
 import { worksData } from './works-data.js';
 import { showsData } from './shows-data.js';
+import { videosData } from './videos-data.js';
+import * as fragments from './fragments.js';
 
 // Configuration
 const WIDTH = 1000;
@@ -385,11 +387,27 @@ elValAperture.innerText = currentAperture.toFixed(2);
 // Add mobile tilt debug display (only on mobile) - insert before the invert reality button
 // Router Configuration
 const routes = {
-    '/': { mode: 0, showWorks: false, showContact: false, showLive: false },
-    '/works': { mode: 3, showWorks: true, showContact: false, showLive: false },
-    '/live': { mode: 0, showWorks: false, showContact: false, showLive: true },
-    '/contact': { mode: 0, showWorks: false, showContact: true, showLive: false }
+    '/': { mode: 0, showWorks: false, showContact: false, showLive: false, showFragments: false },
+    '/works': { mode: 3, showWorks: true, showContact: false, showLive: false, showFragments: false },
+    '/live': { mode: 0, showWorks: false, showContact: false, showLive: true, showFragments: false },
+    '/contact': { mode: 0, showWorks: false, showContact: true, showLive: false, showFragments: false },
+    '/fragments': { mode: 0, showWorks: false, showContact: false, showLive: false, showFragments: true }
 };
+
+// /fragments/<slug> deep-links a single clip. Real paths rather than hashes, so that link
+// previews and crawlers see a distinct URL per fragment.
+function resolveRoute(path) {
+    if (routes[path]) return { route: routes[path], fragmentId: null };
+
+    const match = path.match(/^\/fragments\/([^/]+)\/?$/);
+    if (match) {
+        const id = decodeURIComponent(match[1]);
+        if (videosData.some(v => v.id === id)) {
+            return { route: routes['/fragments'], fragmentId: id };
+        }
+    }
+    return { route: null, fragmentId: null };
+}
 
 // ========================================
 // CONTACT PANEL FUNCTIONALITY
@@ -543,8 +561,8 @@ if (closeLiveBtn) closeLiveBtn.addEventListener('click', () => closeLivePanel(tr
 // THEME TOGGLE FUNCTIONALITY
 // ========================================
 
-// Check for saved theme preference or default to dark mode
-const savedTheme = localStorage.getItem('theme') || 'dark';
+// Check for saved theme preference or default to light mode
+const savedTheme = localStorage.getItem('theme') || 'light';
 const themeToggleBtn = document.getElementById('nav-theme');
 
 // Check if user has clicked the button before (for pulse FTUE)
@@ -678,7 +696,7 @@ if (closeWorksMobileBtn) {
 }
 
 // Navigation Logic
-function setAttractor(mode, pushState = true, showWorks = false, showContact = false, showLive = false) {
+function setAttractor(mode, pushState = true, showWorks = false, showContact = false, showLive = false, showFragments = false, fragmentId = null) {
     currentMode = mode;
     
     // Update Shaders
@@ -718,9 +736,28 @@ function setAttractor(mode, pushState = true, showWorks = false, showContact = f
         closeLivePanel();
     }
     
+    // Handle fragments reader
+    if (showFragments) {
+        closeWorksPanel();
+        closeContactPanel();
+        closeLivePanel();
+        fragments.setRevealed(true);
+        // A bare /fragments shows the grid; /fragments/<slug> opens that clip on top of it.
+        if (fragmentId) fragments.open(fragmentId, { pushState });
+        else fragments.close();
+        document.getElementById('nav-fragments').classList.add('active');
+    } else {
+        fragments.close();
+        fragments.setRevealed(false);
+    }
+
+    // The strip is the landing page's entry point to the videos, so it belongs on / only.
+    // The arrow is the landing page's only cue that the video work exists.
+    fragments.showHint(!showWorks && !showContact && !showLive && !showFragments);
+
     // Find and activate current nav item based on mode
-    if (!showWorks && !showContact && !showLive) {
-        const path = Object.keys(routes).find(p => routes[p].mode === mode && !routes[p].showWorks && !routes[p].showContact && !routes[p].showLive);
+    if (!showWorks && !showContact && !showLive && !showFragments) {
+        const path = Object.keys(routes).find(p => routes[p].mode === mode && !routes[p].showWorks && !routes[p].showContact && !routes[p].showLive && !routes[p].showFragments);
         
         if (path && pushState) {
             history.pushState({ path }, '', path);
@@ -731,20 +768,31 @@ function setAttractor(mode, pushState = true, showWorks = false, showContact = f
         history.pushState({ path: '/live' }, '', '/live');
     } else if (showContact && pushState) {
         history.pushState({ path: '/contact' }, '', '/contact');
+    } else if (showFragments && pushState && !fragmentId) {
+        // With a fragmentId the reader pushes /fragments/<slug> itself; a bare grid
+        // reveal has to record its own URL.
+        history.pushState({ path: '/fragments' }, '', '/fragments');
     }
 }
 
 // Route to page based on URL
 function navigate(path, pushState = true) {
-    const route = routes[path];
-    
+    // Strip any hash so /works#some-work resolves against the route table.
+    const [pathname, hash] = path.split('#');
+    const { route, fragmentId } = resolveRoute(pathname);
+
     // If route doesn't exist, redirect to 404 page
     if (!route) {
         window.location.href = '/404.html';
         return;
     }
-    
-    setAttractor(route.mode, pushState, route.showWorks, route.showContact, route.showLive);
+
+    setAttractor(route.mode, pushState, route.showWorks, route.showContact, route.showLive, route.showFragments, fragmentId);
+
+    if (hash) {
+        history.replaceState({ path: pathname, workId: hash }, '', `${pathname}#${hash}`);
+        handleWorkHash();
+    }
 }
 
 // Handle browser back/forward
@@ -821,6 +869,13 @@ document.getElementById('nav-contact').addEventListener('click', (e) => {
     e.preventDefault();
     navigate('/contact');
 });
+
+document.getElementById('nav-fragments').addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('/fragments');
+});
+
+fragments.initFragments({ navigate });
 
 // Initialize route on page load
 navigate(window.location.pathname, false);
@@ -1600,6 +1655,14 @@ function updateParticleCount() {
 // Animation Loop
 const animate = () => {
     requestAnimationFrame(animate);
+
+    // The fragments reader covers the canvas with a near-opaque backdrop, so idle the
+    // particle simulation while a video is playing rather than competing with it for GPU.
+    if (fragments.isFragmentsOpen() || fragments.isGridRevealed()) {
+        lastFrameTime = performance.now();
+        return;
+    }
+
     const now = performance.now();
     
     // Calculate delta time (in seconds) - time since last frame

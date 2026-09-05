@@ -28,3 +28,6 @@ pids
 *.seed
 *.pid.lock
 
+
+# Video masters (uncompressed sources; encoded outputs in public/videos are committed)
+media/raw/
