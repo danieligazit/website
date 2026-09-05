@@ -56,6 +56,7 @@ const backdrop = panel?.querySelector('.fragments-backdrop');
 const video = document.getElementById('fragments-video');
 const progressEl = document.getElementById('fragments-progress');
 const metaEl = document.getElementById('fragments-meta');
+const descriptionEl = document.getElementById('fragments-description');
 const soundBtn = document.getElementById('fragments-sound');
 const prevBtn = document.getElementById('fragments-prev');
 const nextBtn = document.getElementById('fragments-next');
@@ -296,6 +297,18 @@ function updateProgress() {
     });
 }
 
+// The meta block is deliberately a constant height: date and title only. The description
+// is an overlay opened from the title, so a long one cannot shrink the video. Before this,
+// the frame resized on every navigation (321x570 to 331x586 between two clips) purely
+// because their descriptions wrapped to different numbers of lines.
+function setDescriptionOpen(open) {
+    if (!descriptionEl) return;
+    const hasText = Boolean(descriptionEl.textContent.trim());
+    descriptionEl.hidden = !(open && hasText);
+    descriptionEl.classList.toggle('open', open && hasText);
+    metaEl?.querySelector('.fragments-meta-title')?.setAttribute('aria-expanded', String(open && hasText));
+}
+
 function renderMeta(data) {
     if (!metaEl) return;
     const related = data.relatedWork
@@ -304,18 +317,31 @@ function renderMeta(data) {
     const instagram = data.instagram
         ? `<a class="fragments-meta-link" href="${data.instagram}" target="_blank" rel="noopener noreferrer">Instagram →</a>`
         : '';
+    const hasDescription = Boolean(data.description);
 
     metaEl.innerHTML = `
         <div class="fragments-meta-main">
             <span class="fragments-meta-date">${formatDate(data.date)}</span>
-            <span class="fragments-meta-title">${data.title}</span>
-            ${data.description ? `<span class="fragments-meta-description">${data.description}</span>` : ''}
+            <button type="button" class="fragments-meta-title" aria-expanded="false"
+                    ${hasDescription ? '' : 'data-plain'}>
+                <span>${data.title}</span>
+                ${hasDescription ? '<span class="fragments-meta-more">more</span>' : ''}
+            </button>
         </div>
         <div class="fragments-meta-links">
             <span class="fragments-meta-index">${String(currentIndex + 1).padStart(2, '0')} / ${String(fragments.length).padStart(2, '0')}</span>
             ${related}
             ${instagram}
         </div>`;
+
+    if (descriptionEl) descriptionEl.textContent = data.description ?? '';
+    setDescriptionOpen(false);
+
+    if (hasDescription) {
+        metaEl.querySelector('.fragments-meta-title')?.addEventListener('click', () => {
+            setDescriptionOpen(descriptionEl.hidden);
+        });
+    }
 
     metaEl.querySelector('[data-work]')?.addEventListener('click', (e) => {
         e.preventDefault();
@@ -347,6 +373,7 @@ function show(index, { replace = true } = {}) {
     // These are made to be watched round: a clip repeats until the visitor chooses to
     // move on, so nothing advances on its own.
     video.loop = true;
+    if (data.width && data.height) video.style.aspectRatio = `${data.width} / ${data.height}`;
     video.poster = videoUrl(data.poster);
     video.src = videoUrl(data.src);
     video.muted = !soundEnabled();
@@ -375,6 +402,14 @@ function show(index, { replace = true } = {}) {
         if (replace) history.replaceState({ path }, '', path);
         else history.pushState({ path }, '', path);
     }
+}
+
+function flashTapCue(side) {
+    const cue = panel?.querySelector(`.fragments-tap-cue-${side}`);
+    if (!cue) return;
+    cue.classList.remove('flash');
+    void cue.offsetWidth; // restart the animation if taps come quickly
+    cue.classList.add('flash');
 }
 
 function next() {
@@ -458,8 +493,8 @@ export function initFragments({ navigate } = {}) {
         if (compactLayout.matches) {
             const rect = video.getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width;
-            if (x < 0.33) return prev();
-            if (x > 0.67) return next();
+            if (x < 0.33) { flashTapCue('prev'); return prev(); }
+            if (x > 0.67) { flashTapCue('next'); return next(); }
         }
         video.paused ? video.play() : video.pause();
     });

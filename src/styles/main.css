@@ -1977,10 +1977,11 @@ body.fragments-scrubbing #canvas-container {
 }
 
 .fragments-video {
-    max-height: 100%;
-    max-width: min(56vh, 100%);
-    height: auto;
+    height: 100%;
     width: auto;
+    max-width: 100%;
+    aspect-ratio: 9 / 16;
+    object-fit: contain;
     display: block;
     background: #000;
     border: 1px solid var(--border-primary);
@@ -2051,22 +2052,91 @@ body.fragments-scrubbing #canvas-container {
     flex: 1 1 auto;
 }
 
-.fragments-meta-title {
-    color: var(--text-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-}
-
 /* Date leads: it is the primary way the fragments are ordered, so it reads first. */
 .fragments-meta-date {
     color: var(--text-quaternary);
     letter-spacing: 0.12em;
 }
 
-.fragments-meta-description {
-    color: var(--text-tertiary);
-    max-width: 60ch;
-    line-height: 1.5;
+/* Opens over the foot of the frame instead of joining the layout, so the video keeps the
+   same size whether or not it is showing. Anchored to the frame rather than the viewport,
+   which keeps it clear of the sound control at every size. */
+.fragments-description {
+    position: absolute;
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: 3rem;
+    z-index: 2;
+    padding: 0.8rem 0.9rem;
+    max-height: 45%;
+    overflow-y: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.72rem;
+    line-height: 1.55;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.fragments-description.open {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.fragments-meta-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0;
+    background: none;
+    border: none;
+    font: inherit;
+    letter-spacing: inherit;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    text-align: left;
+    cursor: pointer;
+}
+
+.fragments-meta-title[data-plain] { cursor: default; }
+
+.fragments-meta-more {
+    flex: 0 0 auto;
+    color: var(--text-quaternary);
+    text-transform: lowercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid currentColor;
+}
+
+.fragments-meta-title[aria-expanded="true"] .fragments-meta-more { color: var(--text-secondary); }
+
+/* Brief chevron on the tapped side, so a tap reads as a step rather than a jump. */
+.fragments-tap-cue {
+    position: absolute;
+    top: 50%;
+    z-index: 3;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.8);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+.fragments-tap-cue-prev { left: 0.6rem; }
+.fragments-tap-cue-next { right: 0.6rem; }
+
+.fragments-tap-cue.flash { animation: fragmentsTapCue 0.42s ease-out; }
+
+@keyframes fragmentsTapCue {
+    0% { opacity: 0; }
+    25% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 .fragments-meta-links {
@@ -2114,6 +2184,8 @@ body.fragments-scrubbing #canvas-container {
         gap: 0.6rem;
         font-size: 0.7rem;
     }
+
+    .fragments-description { font-size: 0.7rem; }
 }
 
 /* The grid needs a close control on mobile, where there is no wheel to scrub back. */

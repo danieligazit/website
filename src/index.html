@@ -105,6 +105,11 @@
                 <button class="fragments-arrow" id="fragments-prev" aria-label="Previous fragment">‹</button>
                 <div class="fragments-video-wrap">
                     <video id="fragments-video" class="fragments-video" playsinline muted preload="auto"></video>
+                    <span class="fragments-tap-cue fragments-tap-cue-prev" aria-hidden="true">‹</span>
+                    <span class="fragments-tap-cue fragments-tap-cue-next" aria-hidden="true">›</span>
+                    <!-- Overlays the frame rather than joining the layout, so opening it
+                         never changes the size of the video. -->
+                    <div class="fragments-description" id="fragments-description" hidden></div>
                     <button id="fragments-sound" class="fragments-sound">Sound on</button>
                 </div>
                 <button class="fragments-arrow" id="fragments-next" aria-label="Next fragment">›</button>
