@@ -1651,6 +1651,16 @@ function updateParticleCount() {
     visualGeometry.setDrawRange(0, targetCount);
 }
 
+// Writes a readout and briefly marks it as changed, so the value visibly reacts.
+const readoutTimers = new WeakMap();
+function setReadout(el, text) {
+    if (el.innerText === text) return;
+    el.innerText = text;
+    el.classList.add('changed');
+    clearTimeout(readoutTimers.get(el));
+    readoutTimers.set(el, setTimeout(() => el.classList.remove('changed'), 90));
+}
+
 // Animation Loop
 const animate = () => {
     requestAnimationFrame(animate);
@@ -1722,9 +1732,11 @@ const animate = () => {
     currentAperture += (targetAperture - currentAperture) * paramLerpFactor;
     currentHueShift += (targetHueShift - currentHueShift) * paramLerpFactor;
 
-    // Update UI displays
-    if (elValFocus) elValFocus.innerText = currentFocus.toFixed(0);
-    if (elValAperture) elValAperture.innerText = currentAperture.toFixed(1);
+    // Update UI displays. FOCUS and APERTURE are the live shader uniforms the cursor
+    // drives, so flash them as they move — otherwise nobody discovers that the readout is
+    // reacting to them, and honest instrumentation reads as decoration.
+    if (elValFocus) setReadout(elValFocus, currentFocus.toFixed(0));
+    if (elValAperture) setReadout(elValAperture, currentAperture.toFixed(1));
     if (elValFps) elValFps.innerText = currentFps.toFixed(0);
     
     const currentPointCount = Math.floor(TOTAL_POINTS * performanceLevel);

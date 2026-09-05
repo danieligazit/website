@@ -288,6 +288,8 @@ function updateProgress() {
     const segs = progressEl.querySelectorAll('.fragments-progress-seg');
     segs.forEach((seg, i) => {
         const bar = seg.querySelector('i');
+        // Only the segment being played is accented; the rest read as plain history.
+        seg.classList.toggle('current', i === currentIndex);
         if (i < currentIndex) bar.style.transform = 'scaleX(1)';
         else if (i > currentIndex) bar.style.transform = 'scaleX(0)';
         else {

@@ -7,6 +7,12 @@
 
 /* === CSS VARIABLES FOR THEMING === */
 :root {
+    /* Mono for the instrument layer, sans for anything you actually read a sentence of.
+       Courier New was the browser default rather than a choice, and it is unusually wide
+       and light, so the letter-spacing below is tighter than it used to be. */
+    --font-mono: 'IBM Plex Mono', 'Courier New', Courier, monospace;
+    --font-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+
     /* Dark theme */
     --bg-primary: #020204;
     --bg-secondary: rgba(10, 10, 15, 0.75);
@@ -14,9 +20,13 @@
     --bg-overlay: rgba(2, 2, 4, 0.30);
     --bg-gradient: radial-gradient(circle at center, transparent 50%, #000000 150%);
     --text-primary: #fff;
-    --text-secondary: #b0b0b0;
-    --text-tertiary: #888;
-    --text-quaternary: #757575;
+    --text-secondary: #c9c9d2;
+    --text-tertiary: #8d8d99;
+    --text-quaternary: #757580;
+    /* Pulled from the ember in the black-hole fragment. Used only to mark state — active,
+       current, focused, hovered — never as decoration. */
+    --accent: #ff8a3d;
+    --accent-dim: rgba(255, 138, 61, 0.32);
     --border-primary: rgba(255, 255, 255, 0.1);
     --border-secondary: rgba(255, 255, 255, 0.2);
     --hover-bg: rgba(255, 255, 255, 0.05);
@@ -31,10 +41,12 @@ body.light-mode {
     --bg-secondary-solid: rgba(255, 255, 255, 0.95);
     --bg-overlay: rgba(200, 200, 200, 0.30);
     --bg-gradient: radial-gradient(circle at center, transparent 50%, #e0e0e0 150%);
-    --text-primary: #1d1d1f;
-    --text-secondary: #424245;
-    --text-tertiary: #6e6e73;
-    --text-quaternary: #74747a;
+    --text-primary: #17171c;
+    --text-secondary: #3f3f4a;
+    --text-tertiary: #6b6b78;
+    --text-quaternary: #70707c;
+    --accent: #a3410a;
+    --accent-dim: rgba(163, 65, 10, 0.28);
     --border-primary: rgba(0, 0, 0, 0.1);
     --border-secondary: rgba(0, 0, 0, 0.2);
     --hover-bg: rgba(0, 0, 0, 0.03);
@@ -46,7 +58,7 @@ body.light-mode {
 body {
     background-color: var(--bg-primary); 
     color: var(--text-secondary);
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     overflow: hidden;
     height: 100vh;
     width: 100vw;
@@ -381,7 +393,7 @@ body.light-mode .invert-reality:hover {
     color: var(--text-tertiary);
     padding: 0.25rem 0.5rem;
     font-size: 0.7rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     cursor: pointer;
@@ -557,7 +569,7 @@ body.light-mode .work-item {
     color: var(--text-quaternary);
     padding: 0.75rem 1.5rem;
     font-size: 0.75rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.15em;
     cursor: pointer;
@@ -809,7 +821,7 @@ body.light-mode .contact-link:hover {
     color: var(--text-quaternary);
     opacity: 0;
     transition: opacity 0.3s;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     pointer-events: none;
@@ -830,7 +842,7 @@ body.light-mode .contact-link:hover {
     padding: 1rem 1.5rem;
     border-radius: 4px;
     font-size: 0.85rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     opacity: 0;
@@ -884,7 +896,7 @@ body.light-mode .contact-link:hover {
     opacity: 0;
     transition: opacity 0.2s;
     white-space: nowrap;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -1035,7 +1047,7 @@ body.light-mode .contact-link:hover {
 .show-date {
     font-size: 0.85rem;
     color: var(--text-tertiary);
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     min-width: 100px;
     flex-shrink: 0;
 }
@@ -1720,7 +1732,7 @@ body.light-mode .performance-image {
     gap: 1rem;
     color: var(--text-primary);
     font-size: 1rem;
-    font-family: 'Courier New', monospace;
+    font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.2em;
     z-index: 15; /* Below panels (z-index: 20) */
@@ -1821,7 +1833,7 @@ body.fragments-scrubbing #canvas-container {
     align-items: baseline;
     gap: 0.8rem;
     margin-bottom: 2rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
 }
 
 .fragments-grid-header h2 {
@@ -1889,7 +1901,7 @@ body.fragments-scrubbing #canvas-container {
     flex-direction: column;
     gap: 0.25rem;
     padding: 1.75rem 0.6rem 0.5rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     font-size: 0.62rem;
     letter-spacing: 0.06em;
     color: #fff;
@@ -2035,7 +2047,7 @@ body.fragments-scrubbing #canvas-container {
     right: 0.6rem;
     bottom: 0.6rem;
     padding: 0.3rem 0.6rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     font-size: 0.65rem;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -2079,7 +2091,7 @@ body.fragments-scrubbing #canvas-container {
     justify-content: space-between;
     gap: 1.5rem;
     margin-top: 1.25rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     font-size: 0.75rem;
     letter-spacing: 0.06em;
 }
@@ -2113,7 +2125,7 @@ body.fragments-scrubbing #canvas-container {
     padding: 0.8rem 0.9rem;
     max-height: 45%;
     overflow-y: auto;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-mono);
     font-size: 0.72rem;
     line-height: 1.55;
     letter-spacing: 0.04em;
@@ -2287,4 +2299,98 @@ body.fragments-open .touch-hint {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
+}
+
+
+/* ========================================
+   UI REFRESH — prose face, accent as state
+   ======================================== */
+
+/* Anything that is a sentence rather than a label reads in the sans face; a typewriter
+   face is hard work for real prose and is the most dated text on the site. */
+.fragments-description,
+.fragments-meta-description,
+.contact-intro p,
+.work-description,
+.works-detail-content p,
+.no-shows-message {
+    font-family: var(--font-sans);
+    letter-spacing: 0;
+    line-height: 1.6;
+}
+
+/* IBM Plex Mono is tighter and darker than Courier New, so the tracking that suited the
+   old face looks bloated on the new one. */
+nav a,
+.fragments-meta-title,
+.fragments-grid-header h2,
+.fragments-strip-label {
+    letter-spacing: 0.08em;
+}
+
+.data-display { letter-spacing: 0.04em; }
+
+/* --- Accent marks state only: current, active, focused, hovered. --- */
+nav a.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    text-shadow: 0 0 12px var(--accent-dim);
+}
+
+nav a:hover { color: var(--accent); }
+
+.filter-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* The segment you are on, rather than every segment you have seen. */
+.fragments-progress-seg.current i { background: var(--accent); }
+
+.fragment-tile:hover,
+.fragment-tile:focus-visible { border-color: var(--accent); }
+
+.fragments-meta-title[aria-expanded="true"] .fragments-meta-more { color: var(--accent); }
+
+.fragments-meta-link:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.contact-link:hover { color: var(--accent); }
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
+/* --- Telemetry: what responds to the visitor, and what is only about the machine. --- */
+.data-diagnostics {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.35s ease, opacity 0.35s ease;
+}
+
+.data-display:hover .data-diagnostics,
+.data-display:focus-within .data-diagnostics {
+    max-height: 6rem;
+    opacity: 1;
+}
+
+.data-diagnostics-toggle {
+    color: var(--text-quaternary);
+    cursor: default;
+    user-select: none;
+}
+
+/* A value that just moved brightens briefly, so the link between the cursor and the
+   readout is visible rather than something you have to work out. */
+.value.changed {
+    color: var(--accent);
+    transition: none;
+}
+
+.value {
+    transition: color 0.45s ease;
 }
