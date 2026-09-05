@@ -561,8 +561,10 @@ if (closeLiveBtn) closeLiveBtn.addEventListener('click', () => closeLivePanel(tr
 // THEME TOGGLE FUNCTIONALITY
 // ========================================
 
-// Check for saved theme preference or default to light mode
-const savedTheme = localStorage.getItem('theme') || 'light';
+// Saved preference first, then the per-device default resolved by the inline script in
+// index.html — reading it back rather than recomputing it keeps the two from drifting.
+// The final fallback only matters if main.js is loaded outside that shell.
+const savedTheme = localStorage.getItem('theme') || window.__initialTheme || 'light';
 const themeToggleBtn = document.getElementById('nav-theme');
 
 // Check if user has clicked the button before (for pulse FTUE)

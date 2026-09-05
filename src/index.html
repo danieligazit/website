@@ -34,9 +34,17 @@
 </head>
 <body>
     <script>
-        // Apply theme class immediately to body
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        if (savedTheme === 'light') {
+        // Apply theme class immediately to body, before first paint.
+        //
+        // The default differs by device: the field reads better dark on a phone, so that
+        // is the default there, while desktop stays light. A saved preference always wins.
+        // Nothing is written to storage here on purpose — persisting the default would
+        // freeze it on every returning visitor's device and make it impossible to change
+        // later. main.js reads the value back off window so both agree on one answer.
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                               (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+        window.__initialTheme = localStorage.getItem('theme') || (isMobileDevice ? 'dark' : 'light');
+        if (window.__initialTheme === 'light') {
             document.body.classList.add('light-mode');
         }
     </script>
