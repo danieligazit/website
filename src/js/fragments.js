@@ -359,9 +359,12 @@ function show(index, { replace = true } = {}) {
     video.src = videoUrl(data.src);
     video.muted = !soundEnabled();
     video.play().catch(() => {
-        // An unmuted autoplay can be refused; fall back to muted so something plays.
+        // An unmuted autoplay can be refused when there was no user gesture — a shared
+        // /fragments/<slug> link opened cold, say. Fall back to muted so something plays,
+        // but deliberately do not persist that: it is the browser's decision for this one
+        // playback, not the visitor choosing silence. Persisting it here would let a
+        // single blocked autoplay permanently flip the sound-on default.
         video.muted = true;
-        setSoundEnabled(false);
         updateSoundBtn();
         video.play().catch(() => {});
     });
@@ -390,7 +393,9 @@ function prev() {
     if (currentIndex > 0) show(currentIndex - 1);
 }
 
-const soundEnabled = () => localStorage.getItem('fragments-sound') === 'on';
+// Sound is on by default; only an explicit toggle turns it off. Opening a clip from the
+// grid is a user gesture, so unmuted playback is allowed on that path.
+const soundEnabled = () => localStorage.getItem('fragments-sound') !== 'off';
 const setSoundEnabled = (on) => localStorage.setItem('fragments-sound', on ? 'on' : 'off');
 
 function updateSoundBtn() {
