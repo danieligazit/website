@@ -752,8 +752,7 @@ function setAttractor(mode, pushState = true, showWorks = false, showContact = f
     }
 
     // The strip is the landing page's entry point to the videos, so it belongs on / only.
-    // The arrow is the landing page's only cue that the video work exists.
-    fragments.showHint(!showWorks && !showContact && !showLive && !showFragments);
+    fragments.setLandingActive(!showWorks && !showContact && !showLive && !showFragments);
 
     // Find and activate current nav item based on mode
     if (!showWorks && !showContact && !showLive && !showFragments) {

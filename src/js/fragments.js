@@ -3,14 +3,12 @@
 // ========================================
 //
 // Three pieces:
-//   1. A down arrow on the landing page — the only hint the video work is there.
-//   2. A grid of the clips. On desktop the wheel scrubs it into view, so the particle
-//      field recedes as the grid rises and it snaps open or shut when the gesture stops.
-//      On mobile it is a panel like Works or Live: the arrow opens it. Touch-drag is not
-//      used, because that gesture already belongs to the attractor ("Touch & explore"),
-//      and one drag cannot mean two things.
-//   3. A fullscreen reader that plays a clip on a loop. Nothing advances on its own —
-//      only an arrow, a swipe or a keypress moves to the next fragment.
+//   1. A grid of the clips, reached from the nav. On desktop the wheel also scrubs it
+//      into view from the landing page, so the particle field recedes as the grid rises.
+//      Touch-drag is not used for that, because the gesture already belongs to the
+//      attractor ("Touch & explore") and one drag cannot mean two things.
+//   2. A fullscreen reader that plays a clip on a loop. Nothing advances on its own —
+//      only an arrow, a tap on the frame's edge, a swipe or a keypress moves on.
 //
 // Nothing heavier than a poster image loads until the visitor acts: preview clips attach
 // their source on first hover, and the full 1080x1920 file only loads on open.
@@ -36,6 +34,8 @@ function formatDate(iso) {
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const canHover = window.matchMedia('(hover: hover)').matches;
+// Matches the breakpoint where the CSS hides the prev/next arrows.
+const compactLayout = window.matchMedia('(max-width: 768px)');
 
 // Wheel distance that takes the grid from hidden to fully revealed.
 const REVEAL_DISTANCE = 480;
@@ -47,7 +47,6 @@ const SNAP_THRESHOLD = 0.25;
 // rather than starting a new one that can never reach the threshold.
 const GESTURE_IDLE_MS = 300;
 
-const hint = document.getElementById('fragments-hint');
 const gridPanel = document.getElementById('fragments-grid-panel');
 const grid = document.getElementById('fragments-grid');
 const countEl = document.getElementById('fragments-count');
@@ -267,16 +266,9 @@ function onWheel(e) {
     }, GESTURE_IDLE_MS);
 }
 
-export function showHint(show) {
-    onLanding = show;
-    if (!hint || !hasFragments()) return;
-    hint.hidden = !show;
-    if (show) {
-        void hint.offsetWidth; // see showRevealed: don't depend on rAF, which can starve
-        hint.classList.add('visible');
-    } else {
-        hint.classList.remove('visible');
-    }
+// Only the landing route arms the wheel reveal.
+export function setLandingActive(active) {
+    onLanding = active;
 }
 
 // ----------------------------------------
@@ -449,7 +441,6 @@ export function initFragments({ navigate } = {}) {
     buildProgress();
 
     // The arrow works on every device; the wheel scrub is an addition on top of it.
-    hint?.addEventListener('click', () => setRevealed(true, { navigate: true }));
     gridCloseBtn?.addEventListener('click', () => setRevealed(false, { navigate: true }));
     window.addEventListener('wheel', onWheel, { passive: false });
 
@@ -461,8 +452,17 @@ export function initFragments({ navigate } = {}) {
 
     video?.addEventListener('timeupdate', updateProgress);
     video?.addEventListener('playing', preloadNext);
-    // Tap the frame itself to pause — the expected gesture for this kind of player.
-    video?.addEventListener('click', () => (video.paused ? video.play() : video.pause()));
+    video?.addEventListener('click', (e) => {
+        // Without the arrows, the frame carries navigation: the outer thirds step between
+        // fragments and the middle pauses, which is the convention for this kind of player.
+        if (compactLayout.matches) {
+            const rect = video.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            if (x < 0.33) return prev();
+            if (x > 0.67) return next();
+        }
+        video.paused ? video.play() : video.pause();
+    });
 
     document.addEventListener('keydown', (e) => {
         if (isOpen) {

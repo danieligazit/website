@@ -1727,53 +1727,6 @@ body.fragments-revealed {
     --reveal: 1;
 }
 
-/* --- Scroll affordance --- */
-
-.fragments-hint {
-    position: fixed;
-    left: 50%;
-    bottom: 1.75rem;
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0.75rem 1.25rem;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: var(--text-secondary);
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.18em;
-    opacity: 0;
-    transform: translate(-50%, 10px);
-    transition: opacity 0.6s ease, transform 0.6s ease, color 0.3s ease;
-    /* Fades out as the grid comes up, so it never sits on top of the tiles. */
-    opacity: calc((1 - var(--reveal)));
-}
-
-.fragments-hint.visible {
-    opacity: calc(1 - var(--reveal));
-    transform: translate(-50%, 0);
-}
-
-.fragments-hint:hover {
-    color: var(--text-primary);
-}
-
-.fragments-hint-arrow {
-    animation: fragmentsHintBob 2.4s ease-in-out infinite;
-    /* A halo in the background colour, so the arrow stays legible wherever the particle
-       field happens to be dense behind it. */
-    filter: drop-shadow(0 0 3px var(--bg-primary)) drop-shadow(0 0 7px var(--bg-primary));
-}
-
-@keyframes fragmentsHintBob {
-    0%, 100% { transform: translateY(0); opacity: 0.75; }
-    50% { transform: translateY(5px); opacity: 1; }
-}
-
 /* --- Grid --- */
 
 .fragments-grid-panel {
@@ -1971,12 +1924,19 @@ body.fragments-scrubbing #canvas-container {
 
 .fragments-stage > * { pointer-events: auto; }
 
+.fragments-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 0 0 auto;
+    margin-bottom: 1.25rem;
+}
+
 .fragments-progress {
     display: flex;
     gap: 3px;
     height: 3px;
-    margin-bottom: 1.25rem;
-    flex: 0 0 auto;
+    flex: 1 1 auto;
 }
 
 .fragments-progress-seg {
@@ -1996,9 +1956,7 @@ body.fragments-scrubbing #canvas-container {
 }
 
 .fragments-close {
-    position: absolute;
-    top: 1.4rem;
-    right: 2rem;
+    flex: 0 0 auto;
 }
 
 .fragments-viewer {
@@ -2136,12 +2094,6 @@ body.fragments-scrubbing #canvas-container {
 /* --- Mobile --- */
 
 @media (max-width: 768px) {
-    .fragments-hint {
-        /* Clears the bottom-right nav stack and the bottom-left telemetry readout, both
-           of which are pinned to the bottom of the viewport on mobile. */
-        bottom: 9.5rem;
-    }
-
     .fragments-grid-inner { padding: 4rem 1.25rem 3rem; }
 
     .fragments-grid {
@@ -2150,7 +2102,6 @@ body.fragments-scrubbing #canvas-container {
     }
 
     .fragments-stage { padding: 1rem 1rem 1.5rem; }
-    .fragments-close { right: 1rem; top: 0.9rem; }
 
     /* Arrows are redundant next to swipe, and they steal width from the frame. */
     .fragments-arrow { display: none; }
@@ -2163,13 +2114,6 @@ body.fragments-scrubbing #canvas-container {
         gap: 0.6rem;
         font-size: 0.7rem;
     }
-}
-
-/* Hide the landing affordance whenever a panel owns the screen. */
-body.panel-open .fragments-hint,
-body.fragments-open .fragments-hint {
-    opacity: 0;
-    pointer-events: none;
 }
 
 /* The grid needs a close control on mobile, where there is no wheel to scrub back. */
@@ -2187,15 +2131,12 @@ body.fragments-revealed .fragments-grid-close {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .fragments-hint,
     .fragments-grid-panel,
     .fragment-tile,
     .fragment-tile-video,
     #canvas-container {
         transition: none;
     }
-
-    .fragments-hint-arrow { animation: none; }
 }
 
 /* The reader is meant to be fullscreen, so fade the site chrome out behind it rather
