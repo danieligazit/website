@@ -2114,24 +2114,48 @@ body.fragments-scrubbing #canvas-container {
 
 .fragments-meta-title[aria-expanded="true"] .fragments-meta-more { color: var(--text-secondary); }
 
-/* Brief chevron on the tapped side, so a tap reads as a step rather than a jump. */
-.fragments-tap-cue {
-    position: absolute;
-    top: 50%;
-    z-index: 3;
-    font-size: 2.2rem;
-    line-height: 1;
-    color: #fff;
-    text-shadow: 0 0 12px rgba(0, 0, 0, 0.8);
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-50%);
+/* The browser's own tap highlight paints the whole element, so a tap on one side reads as
+   "the video was pressed" rather than "this side was pressed". Suppress it and provide a
+   cue that covers only the third actually tapped. */
+.fragments-video,
+.fragments-video-wrap,
+.fragments-sound,
+.fragments-meta-title,
+.fragment-tile,
+.close-btn {
+    -webkit-tap-highlight-color: transparent;
 }
 
-.fragments-tap-cue-prev { left: 0.6rem; }
-.fragments-tap-cue-next { right: 0.6rem; }
+.fragments-tap-cue {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 33%;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    padding: 0 0.7rem;
+    font-size: 2rem;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    pointer-events: none;
+}
 
-.fragments-tap-cue.flash { animation: fragmentsTapCue 0.42s ease-out; }
+.fragments-tap-cue-prev {
+    left: 0;
+    justify-content: flex-start;
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.5), transparent);
+}
+
+.fragments-tap-cue-next {
+    right: 0;
+    justify-content: flex-end;
+    background: linear-gradient(to left, rgba(0, 0, 0, 0.5), transparent);
+}
+
+.fragments-tap-cue.flash { animation: fragmentsTapCue 0.38s ease-out; }
 
 @keyframes fragmentsTapCue {
     0% { opacity: 0; }
