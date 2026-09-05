@@ -2523,15 +2523,11 @@ body.light-mode .touch-hint {
         -webkit-text-stroke: 0;
     }
 
-    /* The telemetry and the nav were both anchored to the bottom, in opposite corners, and
-       occupied the same horizontal band — on a phone that reads as one crowded strip
-       rather than two separate things. The nav has the better claim to the bottom: it is
-       what you reach for, and it wants to be in the thumb zone. So the readout moves up
-       under the wordmark, where it belongs anyway — it is a caption on the field, not a
-       control. The logo-area ends at 81px, hence the offset. */
+    /* Stays in the bottom-left corner. It shares a horizontal band with the nav opposite,
+       so it earns its place there by taking up less room: a step down in size and tighter
+       row spacing, which pulls the block in on both axes. */
     .data-display {
-        top: 6rem;
-        bottom: auto;
+        font-size: 0.55rem;
         gap: 0.35rem;
     }
 }
