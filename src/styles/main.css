@@ -27,6 +27,15 @@
        current, focused, hovered — never as decoration. */
     --accent: #ff8a3d;
     --accent-dim: rgba(255, 138, 61, 0.32);
+    /* The site chrome sits directly on a dense, animated, high-contrast particle field, and
+       a glow in a similar tone does not separate text from noise of the same tone. Stacking
+       shadows in the *background* colour instead erases the field immediately around each
+       glyph, which works whatever happens to be behind it.
+
+       Declared once per theme on purpose: a custom property inherits its already-substituted
+       value, so defining this only on :root would bake in the dark --bg-primary and keep
+       painting a dark halo on the light theme. */
+    --chrome-halo: 0 0 4px #020204, 0 0 9px #020204, 0 0 16px #020204, 0 0 26px #020204;
     --border-primary: rgba(255, 255, 255, 0.1);
     --border-secondary: rgba(255, 255, 255, 0.2);
     --hover-bg: rgba(255, 255, 255, 0.05);
@@ -47,6 +56,7 @@ body.light-mode {
     --text-quaternary: #70707c;
     --accent: #a3410a;
     --accent-dim: rgba(163, 65, 10, 0.28);
+    --chrome-halo: 0 0 4px #f5f5f7, 0 0 9px #f5f5f7, 0 0 16px #f5f5f7, 0 0 26px #f5f5f7;
     --border-primary: rgba(0, 0, 0, 0.1);
     --border-secondary: rgba(0, 0, 0, 0.2);
     --hover-bg: rgba(0, 0, 0, 0.03);
@@ -2393,4 +2403,46 @@ nav a:hover { color: var(--accent); }
 
 .value {
     transition: color 0.45s ease;
+}
+
+
+/* --- Legibility of the chrome over the particle field --- */
+
+nav a,
+.logo-area h1,
+.logo-area .subtitle,
+.data-display,
+.data-display .value,
+.touch-hint {
+    text-shadow: var(--chrome-halo);
+}
+
+body.light-mode nav a,
+body.light-mode .logo-area h1,
+body.light-mode .logo-area .subtitle,
+body.light-mode .data-display,
+body.light-mode .data-display .value,
+body.light-mode .touch-hint {
+    text-shadow: var(--chrome-halo);
+}
+
+/* Slightly heavier than the body text: Plex Mono at 400 is lighter than Courier was, and
+   the nav is the one thing that must stay readable at all times. */
+nav a {
+    font-weight: 500;
+}
+
+/* Keep the halo underneath the accent glow rather than replacing it. */
+nav a:hover,
+nav a.active {
+    text-shadow: var(--chrome-halo), 0 0 14px var(--accent-dim);
+}
+
+body.light-mode nav a:hover,
+body.light-mode nav a.active {
+    text-shadow: var(--chrome-halo), 0 0 10px var(--accent-dim);
+}
+
+.invert-reality:hover {
+    text-shadow: var(--chrome-halo), 0 0 10px var(--accent-dim);
 }
