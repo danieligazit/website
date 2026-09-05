@@ -2436,11 +2436,15 @@ nav a:hover { color: var(--accent); }
 }
 
 /* Was --text-secondary at 400: the thing you are meant to click was the faintest text in
-   the corner. Tracking opens the gaps between glyphs so speckle landing between two
-   letters cannot bridge them. */
+   the corner.
+
+   500 rather than 600: at this size 600 read as shouting, and the weight was never the
+   part doing the work here. The tracking is — it opens the gaps between glyphs so speckle
+   landing between two letters cannot bridge them — and that survives the lighter weight
+   intact, as do the size and the move to full white. */
 nav a {
     color: var(--text-primary);
-    font-weight: 600;
+    font-weight: 500;
     font-size: 1.02rem;
     letter-spacing: 0.18em;
     text-shadow: none;
