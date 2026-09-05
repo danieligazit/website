@@ -2497,3 +2497,41 @@ body.light-mode .touch-hint {
     font-weight: 500;
     text-shadow: var(--chrome-halo);
 }
+
+@media (max-width: 768px) {
+    /* The desktop sizing assumes a field seen at arm's length on a wide screen. On a phone
+       the same values are simply large, and the nav ends up crowding the telemetry in the
+       opposite corner. */
+    nav a {
+        font-size: 0.85rem;
+        letter-spacing: 0.12em;
+        /* This faux-bold stroke predates the weight change and now stacks on top of it:
+           500 plus a currentColor stroke renders closer to 700. The weight carries it on
+           its own now. */
+        -webkit-text-stroke: 0;
+        /* Trimmed with the type, but kept above 44px so the tap target does not regress. */
+        padding: 0.85rem 0;
+    }
+
+    /* Same problem, same cause — the wordmark is at 300 now rather than 100, so it no
+       longer needs a stroke to survive the field. */
+    h1 {
+        -webkit-text-stroke: 0;
+    }
+
+    .subtitle {
+        -webkit-text-stroke: 0;
+    }
+
+    /* The telemetry and the nav were both anchored to the bottom, in opposite corners, and
+       occupied the same horizontal band — on a phone that reads as one crowded strip
+       rather than two separate things. The nav has the better claim to the bottom: it is
+       what you reach for, and it wants to be in the thumb zone. So the readout moves up
+       under the wordmark, where it belongs anyway — it is a caption on the field, not a
+       control. The logo-area ends at 81px, hence the offset. */
+    .data-display {
+        top: 6rem;
+        bottom: auto;
+        gap: 0.35rem;
+    }
+}
