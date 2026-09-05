@@ -30,17 +30,12 @@
     /* The site chrome sits directly on a dense, animated, high-contrast particle field, and
        a glow in a similar tone does not separate text from noise of the same tone. Stacking
        shadows in the *background* colour instead erases the field immediately around each
-       glyph, which works whatever happens to be behind it.
+       glyph. Unused by default — see the chrome block at the end of this file.
 
        Declared once per theme on purpose: a custom property inherits its already-substituted
        value, so defining this only on :root would bake in the dark --bg-primary and keep
        painting a dark halo on the light theme. */
     --chrome-halo: 0 0 2px #020204, 0 0 3px #020204;
-    /* The panel the chrome sits on. Translucent enough that the field still moves behind
-       it, opaque enough that mono type at 11px holds. */
-    --chrome-surface: rgba(4, 4, 8, 0.5);
-    --chrome-surface-solid: rgba(4, 4, 8, 0.82);
-    --chrome-edge: rgba(255, 255, 255, 0.09);
     --border-primary: rgba(255, 255, 255, 0.1);
     --border-secondary: rgba(255, 255, 255, 0.2);
     --hover-bg: rgba(255, 255, 255, 0.05);
@@ -62,9 +57,6 @@ body.light-mode {
     --accent: #a3410a;
     --accent-dim: rgba(163, 65, 10, 0.28);
     --chrome-halo: 0 0 2px #f5f5f7, 0 0 3px #f5f5f7;
-    --chrome-surface: rgba(248, 248, 250, 0.8);
-    --chrome-surface-solid: rgba(248, 248, 250, 0.92);
-    --chrome-edge: rgba(0, 0, 0, 0.08);
     --border-primary: rgba(0, 0, 0, 0.1);
     --border-secondary: rgba(0, 0, 0, 0.2);
     --hover-bg: rgba(0, 0, 0, 0.03);
@@ -2416,154 +2408,69 @@ nav a:hover { color: var(--accent); }
 }
 
 
-/* --- Legibility of the chrome over the particle field --- */
+/* --- Legibility of the chrome, solved in the artwork rather than on top of it ---------
+   Three earlier attempts all worked the same way: put something between the type and the
+   field — a glow, a gradient plate, a blurred panel. Every one of them either smeared
+   (anything soft enough to cover a dense cluster is big enough to read as a smudge) or
+   covered the work (anything hard enough not to smear reads as a UI panel bolted over it).
 
-nav a,
+   The field is now thinned towards the corners in the particle shader itself, so the four
+   places the chrome occupies are genuinely empty background. That leaves nothing for the
+   type to fight, which means the type needs no treatment at all: no shadow, no stroke, no
+   backing. It just has to be confident enough to look deliberate.
+
+   `--chrome-halo` is left defined as a one-line insurance dial. If a cluster ever does
+   reach far enough into a corner to trouble the type, add it back on the selectors below;
+   raising `uQuietCorners` in main.js is the better fix. */
+
+/* Was --text-secondary, a mid grey on a mid-ground: the item you are meant to click was
+   the faintest thing in the corner. */
+nav a {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.95rem;
+    letter-spacing: 0.14em;
+    text-shadow: none;
+}
+
+body.light-mode nav a {
+    text-shadow: none;
+}
+
+nav a:hover,
+nav a.active,
+body.light-mode nav a:hover,
+body.light-mode nav a.active {
+    color: var(--accent);
+    text-shadow: none;
+}
+
 .logo-area h1,
 .logo-area .subtitle,
 .data-display,
 .data-display .value,
-.touch-hint {
-    text-shadow: var(--chrome-halo);
-}
-
-body.light-mode nav a,
 body.light-mode .logo-area h1,
 body.light-mode .logo-area .subtitle,
 body.light-mode .data-display,
-body.light-mode .data-display .value,
+body.light-mode .data-display .value {
+    text-shadow: none;
+}
+
+/* The one exception. The mobile touch hint sits dead centre, which is the densest part of
+   the field and the only place the corner falloff deliberately leaves alone. It is small,
+   it appears once and fades, so the halo it needs never sits on screen long enough to
+   read as a treatment. */
+.touch-hint,
 body.light-mode .touch-hint {
     text-shadow: var(--chrome-halo);
 }
 
-/* Slightly heavier than the body text: Plex Mono at 400 is lighter than Courier was, and
-   the nav is the one thing that must stay readable at all times. */
-nav a {
-    font-weight: 500;
-}
-
-/* Keep the halo underneath the accent glow rather than replacing it. */
-nav a:hover,
-nav a.active {
-    text-shadow: var(--chrome-halo), 0 0 14px var(--accent-dim);
-}
-
-body.light-mode nav a:hover,
-body.light-mode nav a.active {
-    text-shadow: var(--chrome-halo), 0 0 10px var(--accent-dim);
+/* The telemetry was grey-on-grey; the three rows that answer to the cursor are the point
+   of it, so they get read as text rather than as texture. */
+.data-display {
+    color: var(--text-tertiary);
 }
 
 .invert-reality:hover {
-    text-shadow: var(--chrome-halo), 0 0 10px var(--accent-dim);
-}
-
-
-/* --- A surface, not an effect ---------------------------------------------------------
-   Both of the previous attempts tried to separate the text from the field by softening
-   something: a glow around the glyph, then a gradient wash behind the cluster. Anything
-   soft enough to cover a dense cluster is large enough to read as smear. So instead the
-   chrome gets an actual surface with a defined edge — the field carries on behind it,
-   blurred, and the type sits on something solid. Hard boundary, no falloff, nothing to
-   smear.
-
-   The stroke drops to a hairline: it is there to keep the glyph from dissolving into its
-   own backing when the field behind is bright, not to do the separating. Three pixels on
-   11px mono closed the counters and fattened every letter, which is what looked smudged. */
-nav,
-.logo-area,
-.data-display {
-    background: var(--chrome-surface);
-    border: 1px solid var(--chrome-edge);
-    border-radius: 3px;
-    backdrop-filter: blur(16px) saturate(0.65);
-    -webkit-backdrop-filter: blur(16px) saturate(0.65);
-}
-
-/* Padding grows the panel around the text; the fixed offsets shrink by the same amount so
-   the type stays exactly where it was. */
-nav {
-    padding: 0.9rem 1.1rem;
-    top: 1.1rem;
-    right: 0.9rem;
-}
-
-.logo-area {
-    padding: 0.9rem 1.2rem;
-    top: 1.1rem;
-    left: 0.8rem;
-}
-
-.data-display {
-    padding: 0.75rem 1rem;
-    bottom: 1.25rem;
-    left: 1rem;
-}
-
-/* Without a backdrop filter the panel is just a flat tint, so it has to be opaque enough
-   to stand on its own. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    nav,
-    .logo-area,
-    .data-display,
-    .touch-hint {
-        background: var(--chrome-surface-solid);
-    }
-}
-
-@supports (paint-order: stroke) {
-    nav a,
-    .logo-area h1,
-    .logo-area .subtitle,
-    .data-display,
-    .touch-hint,
-    body.light-mode nav a,
-    body.light-mode .logo-area h1,
-    body.light-mode .logo-area .subtitle,
-    body.light-mode .data-display,
-    body.light-mode .touch-hint {
-        paint-order: stroke fill;
-        -webkit-text-stroke: 0.6px var(--bg-primary);
-        text-shadow: none;
-    }
-
-    /* The accent glow on the active item is small enough not to bloom, so it survives. */
-    nav a:hover,
-    nav a.active,
-    body.light-mode nav a:hover,
-    body.light-mode nav a.active {
-        text-shadow: 0 0 10px var(--accent-dim);
-    }
-}
-
-/* The touch hint sits in the busiest part of the frame, so it gets a panel too. */
-.touch-hint {
-    padding: 1rem 1.4rem;
-    background: var(--chrome-surface);
-    border: 1px solid var(--chrome-edge);
-    border-radius: 3px;
-    backdrop-filter: blur(16px) saturate(0.65);
-    -webkit-backdrop-filter: blur(16px) saturate(0.65);
-}
-
-@media (max-width: 768px) {
-    nav {
-        padding: 0.35rem 0.9rem;
-        /* The desktop rule above sets a top offset; on mobile the nav is bottom-anchored,
-           so it has to be released or the panel stretches the height of the screen. */
-        top: auto;
-        bottom: 0.7rem;
-        right: 0.7rem;
-    }
-
-    .logo-area {
-        padding: 0.7rem 0.9rem;
-        top: 0.6rem;
-        left: 0.6rem;
-    }
-
-    .data-display {
-        padding: 0.6rem 0.8rem;
-        left: 0.6rem;
-        bottom: calc(1rem + 0.2rem);
-    }
+    text-shadow: none;
 }

@@ -191,7 +191,11 @@ const visualMaterial = new THREE.ShaderMaterial({
         uMode: { value: 0 },
         uLightMode: { value: 0.0 }, // 0 = dark, 1 = light
         uHueShift: { value: 0.0 }, // Color shift -1.0 to 1.0
-        uIsMobile: { value: isMobileDevice ? 1.0 : 0.0 } // Mobile device flag
+        uIsMobile: { value: isMobileDevice ? 1.0 : 0.0 }, // Mobile device flag
+        // Drawing-buffer size, so the fragment shader can work in screen space.
+        uResolution: { value: new THREE.Vector2(1, 1) },
+        // How much the field thins out towards the corners. 0 disables it entirely.
+        uQuietCorners: { value: 0.95 }
     },
     vertexShader: `
         uniform sampler2D texturePosition;
@@ -254,6 +258,8 @@ const visualMaterial = new THREE.ShaderMaterial({
     fragmentShader: `
         uniform float uTime;
         uniform float uAperture;
+        uniform vec2 uResolution;
+        uniform float uQuietCorners;
         uniform int uMode;
         uniform float uLightMode;
         uniform float uHueShift;
@@ -350,6 +356,27 @@ const visualMaterial = new THREE.ShaderMaterial({
                 finalColor = starColor * scintillation * glow;
             }
             
+            /* The site chrome lives in the four corners, and the corners are exactly where
+               a swinging cluster makes small type unreadable. Rather than covering the
+               field there with a panel or a glow — both of which put something *over* the
+               artwork — the field is thinned out there itself: particles near a corner
+               lose their alpha, so a quiet corner is genuinely empty background rather
+               than artwork with a wash on top. Nothing is painted, so nothing can smear.
+
+               Composition-wise this is a vignette on the points, not on the frame: the
+               attractor already lives near the centre, and the falloff reads like the far
+               edge of the depth of field it is already simulating. */
+            vec2 fromCentre = abs(gl_FragCoord.xy / uResolution - 0.5) * 2.0;
+            /* Corner-weighted, not radial. The camera sits inside the shell, so the field
+               is at its densest at grazing angles — a plain vignette would take out that
+               bright ring, which is the most interesting thing on screen. Multiplying the
+               two axes instead gives a mask that is zero anywhere along the horizontal or
+               vertical centre lines and only reaches full strength in the four corners,
+               which is exactly where the chrome sits. */
+            float cornerness = fromCentre.x * fromCentre.y;
+            float quiet = 1.0 - smoothstep(0.08, 0.62, cornerness) * uQuietCorners;
+            alpha *= quiet;
+
             gl_FragColor = vec4( finalColor, alpha );
         }
     `,
@@ -1778,10 +1805,24 @@ const animate = () => {
     renderer.render(scene, camera);
 };
 
+const syncResolutionUniform = () => {
+    // Read the canvas itself rather than getDrawingBufferSize(): setPixelRatio() is called
+    // after the initial setSize(), so three's own accounting reports a buffer twice the size
+    // of the one actually allocated until the first resize. gl_FragCoord is in real
+    // drawing-buffer pixels, and getting this wrong inverts the falloff.
+    visualMaterial.uniforms.uResolution.value.set(
+        renderer.domElement.width,
+        renderer.domElement.height
+    );
+};
+syncResolutionUniform();
+
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    // gl_FragCoord is in drawing-buffer pixels, so this has to follow the pixel ratio too.
+    syncResolutionUniform();
 });
 
 animate();
