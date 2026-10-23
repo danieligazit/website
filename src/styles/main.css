@@ -2698,9 +2698,7 @@ body.light-mode .work-item,
         display: none;
     }
 
-    /* Set apart by space alone: a dimmer colour wouldn't hold up over the particle field */
     .nav-invert {
         display: list-item;
-        margin-top: 1.6rem;
     }
 }
