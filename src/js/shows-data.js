@@ -9,8 +9,19 @@ export const showsData = {
         //     ticketLink: 'https://...',
         //     description: 'Optional description'
         // }
+        {
+            date: '2026-11-07',
+            venue: 'Belcampo de Hallen (HOV2+)',
+            city: 'Amsterdam',
+            ticketLink: 'https://www.belcampo.amsterdam/events/hov2-mv7zbms2'
+        }
     ],
     past: [
+        {
+            date: '2026-10-23',
+            venue: 'Felix Meritis (ADE)',
+            city: 'Amsterdam'
+        },
         {
             date: '2025-08-14',
             venue: 'Tmuna Theater',
