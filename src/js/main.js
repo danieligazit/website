@@ -1106,6 +1106,39 @@ function selectWork(workId, pushState = true) {
 }
 
 // Render detail view for a work
+// Direct links to every platform a release is on. The embedded players are previews for
+// anyone not signed in, so these are how most visitors will actually listen.
+function listenLinks(work) {
+    const links = [];
+    if (work.spotify?.id) {
+        links.push({ name: 'Spotify', url: `https://open.spotify.com/${work.spotify.type}/${work.spotify.id}` });
+    }
+    if (work.appleMusic?.id) {
+        links.push({ name: 'Apple Music', url: `https://music.apple.com/us/${work.appleMusic.type}/${work.appleMusic.id}` });
+    }
+    if (work.tidal?.id) {
+        links.push({ name: 'Tidal', url: `https://tidal.com/browse/${work.tidal.type}/${work.tidal.id}` });
+    }
+    if (work.youtubeMusic?.id) {
+        const url = work.youtubeMusic.type === 'playlist'
+            ? `https://music.youtube.com/playlist?list=${work.youtubeMusic.id}`
+            : `https://music.youtube.com/watch?v=${work.youtubeMusic.id}`;
+        links.push({ name: 'YouTube Music', url });
+    }
+    return links;
+}
+
+function listenLinksHTML(work) {
+    const links = listenLinks(work);
+    if (links.length === 0) return '';
+    return `
+        <div class="listen-links">
+            <span class="listen-label">Listen on</span>
+            ${links.map(l => `<a href="${l.url}" target="_blank" rel="noopener noreferrer">${l.name} ↗</a>`).join('')}
+        </div>
+    `;
+}
+
 function renderWorkDetail(work) {
     const monthText = work.month ? `${work.month} ` : '';
     const typeLabel = work.type.charAt(0).toUpperCase() + work.type.slice(1);
@@ -1114,6 +1147,11 @@ function renderWorkDetail(work) {
     const isPerformance = work.performanceImages && work.performanceImages.length > 0;
     const isMusicWork = work.spotify || work.appleMusic?.id;
     
+    if (isMusicWork) {
+        renderMusicDetail(work, monthText, typeLabel, isAVWork, isPerformance);
+        return;
+    }
+
     // Build header section
     let html = `
         <div class="detail-work-header">
@@ -1148,6 +1186,44 @@ function renderWorkDetail(work) {
     });
 }
 
+// Releases: the cover and notes on the left, the player on the right at the pane's full
+// height so an album's whole tracklist is in view.
+function renderMusicDetail(work, monthText, typeLabel, isAVWork, isPerformance) {
+    const isAlbum = work.spotify?.type === 'album';
+
+    worksDetailContent.innerHTML = `
+        <div class="detail-music ${isAlbum ? 'is-album' : ''}">
+            <div class="detail-music-aside">
+                ${work.coverArt ? `
+                    <div class="detail-cover-art">
+                        <img src="${work.coverArt}" alt="${work.title}">
+                    </div>
+                ` : ''}
+                <div class="detail-info">
+                    <div class="detail-title">${work.title}</div>
+                    <div class="detail-meta">
+                        <span>${monthText}${work.year}</span>
+                        <span class="work-tag">${typeLabel}</span>
+                    </div>
+                    ${work.description ? `<div class="detail-description">${work.description}</div>` : ''}
+                    ${work.longDescription ? `<div class="detail-description" style="margin-top: 0.5rem;">${work.longDescription}</div>` : ''}
+                    ${listenLinksHTML(work)}
+                </div>
+            </div>
+            <div class="detail-content">
+                ${renderDetailContent(work, true, isAVWork, isPerformance)}
+            </div>
+        </div>
+    `;
+
+    worksDetailContent.querySelectorAll('.platform-tab').forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            e.stopPropagation();
+            switchPlatform(tab);
+        });
+    });
+}
+
 // Render the content section (embeds, gallery, etc.)
 function renderDetailContent(work, isMusicWork, isAVWork, isPerformance) {
     const isLightMode = document.body.classList.contains('light-mode');
@@ -1160,19 +1236,17 @@ function renderDetailContent(work, isMusicWork, isAVWork, isPerformance) {
     if (isMusicWork) {
         const hasAppleMusic = work.appleMusic?.id;
         const hasTidal = work.tidal?.id;
-        const hasYoutubeMusic = work.youtubeMusic?.id;
         
         // Determine heights based on type
         const spotifyHeight = work.spotify?.type === 'album' ? 352 : 152;
         const appleMusicHeight = work.appleMusic?.type === 'album' ? 450 : 175;
-        const tidalHeight = work.tidal?.type === 'album' ? 400 : 150;
+        const tidalHeight = work.tidal?.type === 'album' ? 450 : 96;
         
         content += `
             <div class="platform-tabs">
                 <button class="platform-tab active" data-platform="spotify">Spotify</button>
                 <button class="platform-tab" data-platform="apple" ${!hasAppleMusic ? 'disabled' : ''}>Apple Music</button>
                 <button class="platform-tab" data-platform="tidal" ${!hasTidal ? 'disabled' : ''}>Tidal</button>
-                <button class="platform-tab" data-platform="youtube-music" ${!hasYoutubeMusic ? 'disabled' : ''}>YouTube Music</button>
             </div>
             <div class="player-container">
                 <div class="player-content active" data-platform="spotify">
@@ -1198,30 +1272,10 @@ function renderDetailContent(work, isMusicWork, isAVWork, isPerformance) {
                     <div class="player-content" data-platform="tidal">
                         <iframe 
                             src="https://embed.tidal.com/${work.tidal.type}s/${work.tidal.id}"
-                            height="${work.tidal.type === 'album' ? '450' : '96'}"
+                            height="${tidalHeight}"
                             allow="encrypted-media"
                             loading="lazy">
                         </iframe>
-                    </div>
-                ` : ''}
-                ${hasYoutubeMusic ? `
-                    <div class="player-content" data-platform="youtube-music">
-                        <div class="youtube-music-link-container">
-                            <img src="${work.coverArt}" alt="${work.title}" class="yt-music-cover">
-                            <div class="yt-music-info">
-                                <h3>${work.title}</h3>
-                                <p>Daniel Gazit</p>
-                            </div>
-                            <a href="https://music.youtube.com/playlist?list=${work.youtubeMusic.id}" 
-                               target="_blank" 
-                               rel="noopener noreferrer" 
-                               class="yt-music-btn">
-                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-                                </svg>
-                                Listen on YouTube Music
-                            </a>
-                        </div>
                     </div>
                 ` : ''}
             </div>
@@ -1328,7 +1382,6 @@ function createMusicWorkHTML(work, monthText, typeLabel) {
     // Check platform availability
     const hasAppleMusic = work.appleMusic?.id;
     const hasTidal = work.tidal?.id;
-    const hasYoutubeMusic = work.youtubeMusic?.id;
     
     // Determine current theme for embeds
     const isLightMode = document.body.classList.contains('light-mode');
@@ -1338,7 +1391,7 @@ function createMusicWorkHTML(work, monthText, typeLabel) {
     // Determine heights based on type
     const spotifyHeight = work.spotify?.type === 'album' ? 352 : 152;
     const appleMusicHeight = work.appleMusic?.type === 'album' ? 450 : 175;
-    const tidalHeight = work.tidal?.type === 'album' ? 400 : 150;
+    const tidalHeight = work.tidal?.type === 'album' ? 450 : 96;
     
     return `
         <div class="work-item ${expandedClass}" data-work-id="${work.id}">
@@ -1358,11 +1411,11 @@ function createMusicWorkHTML(work, monthText, typeLabel) {
             </div>
             <div class="work-details">
                 <div class="work-details-inner">
+                    ${listenLinksHTML(work)}
                     <div class="platform-tabs">
                         <button class="platform-tab active" data-platform="spotify">Spotify</button>
                         <button class="platform-tab" data-platform="apple" ${!hasAppleMusic ? 'disabled' : ''}>Apple Music</button>
                         <button class="platform-tab" data-platform="tidal" ${!hasTidal ? 'disabled' : ''}>Tidal</button>
-                        <button class="platform-tab" data-platform="youtube-music" ${!hasYoutubeMusic ? 'disabled' : ''}>YT Music</button>
                     </div>
                     <div class="player-container">
                         <div class="player-content active" data-platform="spotify">
@@ -1393,31 +1446,11 @@ function createMusicWorkHTML(work, monthText, typeLabel) {
                                 <iframe 
                                     src="https://embed.tidal.com/${work.tidal.type}s/${work.tidal.id}"
                                     width="100%"
-                                    height="${work.tidal?.type === 'album' ? '450' : '96'}"
+                                    height="${tidalHeight}"
                                     frameBorder="0"
                                     allow="encrypted-media"
                                     loading="lazy">
                                 </iframe>
-                            </div>
-                        ` : ''}
-                        ${hasYoutubeMusic ? `
-                            <div class="player-content" data-platform="youtube-music">
-                                <div class="youtube-music-link-container">
-                                    <img src="${work.coverArt}" alt="${work.title}" class="yt-music-cover">
-                                    <div class="yt-music-info">
-                                        <h3>${work.title}</h3>
-                                        <p>Daniel Gazit</p>
-                                    </div>
-                                    <a href="https://music.youtube.com/playlist?list=${work.youtubeMusic.id}" 
-                                       target="_blank" 
-                                       rel="noopener noreferrer" 
-                                       class="yt-music-btn">
-                                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-                                        </svg>
-                                        Listen on YouTube Music
-                                    </a>
-                                </div>
                             </div>
                         ` : ''}
                     </div>

@@ -1407,65 +1407,118 @@ body.light-mode .contact-link:hover {
     max-width: 100%;
 }
 
-/* YouTube Music link container (since YT Music doesn't have embeddable player) */
-.youtube-music-link-container {
+/* Release page: cover and notes beside the player */
+.works-detail-content:has(.detail-music) {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 2rem;
-    background: linear-gradient(135deg, rgba(255,0,0,0.1) 0%, rgba(30,30,30,0.95) 100%);
-    border-radius: 12px;
-    border: 1px solid var(--border-primary);
+    container-type: inline-size;
+}
+
+.works-detail .detail-music {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(220px, 300px) 1fr;
+    gap: 3rem;
+}
+
+.works-detail .detail-music-aside {
+    display: flex;
+    flex-direction: column;
     gap: 1.5rem;
+    min-width: 0;
 }
 
-.yt-music-cover {
-    width: 180px;
-    height: 180px;
-    object-fit: cover;
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+.works-detail .detail-music .detail-cover-art {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
 }
 
-.yt-music-info {
-    text-align: center;
+.works-detail .detail-music .detail-info {
+    flex: none;
+    justify-content: flex-start;
+    min-width: 0;
 }
 
-.yt-music-info h3 {
-    font-size: 1.2rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 0.25rem;
+.works-detail .detail-music .detail-content {
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
 }
 
-.yt-music-info p {
-    font-size: 0.9rem;
+/* An album's player takes the column's full height; a single track keeps its own. */
+.works-detail .detail-music.is-album .player-container {
+    flex: 1;
+    min-height: 352px;
+}
+
+.works-detail .detail-music.is-album .player-content.active,
+.works-detail .detail-music.is-album .player-content.active iframe {
+    height: 100%;
+}
+
+/* Too narrow for two columns: the notes sit above the player again. */
+@container (max-width: 760px) {
+    .works-detail .detail-music {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .works-detail .detail-music-aside {
+        flex-direction: row;
+        gap: 2rem;
+    }
+
+    .works-detail .detail-music .detail-cover-art {
+        width: 200px;
+        flex-shrink: 0;
+    }
+
+    .works-detail .detail-music .detail-info {
+        flex: 1;
+    }
+
+    .works-detail .detail-music.is-album .player-container {
+        height: 520px;
+        flex: none;
+    }
+}
+
+/* Direct links out to each platform */
+.listen-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1.25rem;
+    margin-top: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.listen-label {
+    color: var(--text-quaternary);
+    flex-basis: 100%;
+}
+
+.listen-links a {
     color: var(--text-secondary);
-}
-
-.yt-music-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 1.5rem;
-    background: #FF0000;
-    color: white;
     text-decoration: none;
-    border-radius: 24px;
-    font-weight: 500;
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(255,0,0,0.3);
+    border-bottom: 1px solid var(--border-primary);
+    padding-bottom: 2px;
+    transition: color 0.2s ease, border-color 0.2s ease;
 }
 
-.yt-music-btn:hover {
-    background: #CC0000;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255,0,0,0.4);
+.listen-links a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
 }
 
-.yt-music-btn svg {
-    flex-shrink: 0;
+.work-details-inner .listen-links {
+    margin: 0 0 1.25rem;
 }
 
 /* Gallery in detail view - larger images */
