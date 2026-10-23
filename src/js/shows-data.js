@@ -1,3 +1,5 @@
+// Which list a show is in only matters for keeping this file tidy: the Live panel sorts
+// by date, so an upcoming show moves to Past by itself once its day is over.
 export const showsData = {
     upcoming: [
         // Add upcoming shows here when available
@@ -20,7 +22,8 @@ export const showsData = {
         {
             date: '2026-10-23',
             venue: 'Felix Meritis (ADE)',
-            city: 'Amsterdam'
+            city: 'Amsterdam',
+            link: 'https://www.amsterdam-dance-event.nl/en/program/2026/lumus-immersive-experiences/2829976/'
         },
         {
             date: '2025-08-14',

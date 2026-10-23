@@ -423,11 +423,9 @@ const copyToast = document.getElementById('copy-toast');
 // Open/Close Contact Panel
 function openContactPanel() {
     contactPanel.classList.add('active');
-    console.log('Opening contact panel, isMobileDevice:', isMobileDevice);
     // Add class to body for mobile styling
     if (isMobileDevice) {
         document.body.classList.add('panel-open');
-        console.log('Added panel-open class to body');
     }
 }
 
@@ -490,7 +488,6 @@ const pastShowsContainer = document.getElementById('past-shows');
 function openLivePanel() {
     livePanel.classList.add('active');
     renderShows();
-    console.log('Opening live panel, isMobileDevice:', isMobileDevice);
     // Add class to body for mobile styling
     if (isMobileDevice) {
         document.body.classList.add('panel-open');
@@ -520,14 +517,28 @@ function formatShowDate(dateStr) {
     return `${day}.${month}.${year}`;
 }
 
+// Split shows by date rather than by which list they were entered in, so a show moves
+// to Past by itself the day after it happens.
+function splitShowsByDate() {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const all = [...showsData.upcoming, ...showsData.past];
+    return {
+        upcoming: all.filter(show => show.date >= today).sort((a, b) => a.date.localeCompare(b.date)),
+        past: all.filter(show => show.date < today).sort((a, b) => b.date.localeCompare(a.date)),
+    };
+}
+
 // Render shows lists
 function renderShows() {
+    const shows = splitShowsByDate();
+
     // Render upcoming shows
     if (upcomingShowsContainer) {
-        if (showsData.upcoming.length === 0) {
+        if (shows.upcoming.length === 0) {
             upcomingShowsContainer.innerHTML = '<div class="no-shows-message">No upcoming shows announced yet. Stay tuned!</div>';
         } else {
-            upcomingShowsContainer.innerHTML = showsData.upcoming.map(show => `
+            upcomingShowsContainer.innerHTML = shows.upcoming.map(show => `
                 <div class="show-item upcoming">
                     <span class="show-date">${formatShowDate(show.date)}</span>
                     <span class="show-venue">${show.venue}</span>
@@ -540,13 +551,19 @@ function renderShows() {
     
     // Render past shows
     if (pastShowsContainer) {
-        pastShowsContainer.innerHTML = showsData.past.map(show => `
+        pastShowsContainer.innerHTML = shows.past.map(show => {
+            // A show that has moved over from upcoming keeps its event page as the link
+            const link = show.link || show.ticketLink;
+            return `
             <div class="show-item">
                 <span class="show-date">${formatShowDate(show.date)}</span>
-                <span class="show-venue">${show.venue}</span>
+                ${link
+                    ? `<a href="${link}" target="_blank" rel="noopener noreferrer" class="show-venue">${show.venue}</a>`
+                    : `<span class="show-venue">${show.venue}</span>`}
                 <span class="show-city">${show.city}</span>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 }
 
@@ -623,6 +640,8 @@ if (themeToggleBtn) {
     themeToggleBtn.addEventListener('click', toggleTheme);
 }
 
+document.getElementById('nav-theme-mobile').addEventListener('click', toggleTheme);
+
 // ========================================
 // END THEME TOGGLE FUNCTIONALITY
 // ========================================
@@ -695,11 +714,9 @@ function openWorksPanel() {
     worksPanel.classList.add('active');
     checkLayoutMode();
     renderWorks(currentFilter);
-    console.log('Opening works panel, isMobileDevice:', isMobileDevice, 'isDesktopLayout:', isDesktopLayout);
     // Add class to body for mobile styling
     if (isMobileDevice) {
         document.body.classList.add('panel-open');
-        console.log('Added panel-open class to body');
     }
 }
 
@@ -1652,17 +1669,12 @@ closeWorksBtn.addEventListener('click', () => closeWorksPanel(true));
 // INPUT DETECTION (Mobile vs Desktop)
 // ========================================
 
-console.log('Device detection - isMobileDevice:', isMobileDevice);
-console.log('DeviceOrientationEvent available:', typeof DeviceOrientationEvent !== 'undefined');
-
 // ========================================
 // INPUT HANDLING
 // ========================================
 
 // Touch controls for mobile
 if (isMobileDevice) {
-    console.log('Mobile device - setting up touch controls');
-    
     const touchHint = document.getElementById('touch-hint');
     let hasInteracted = false;
     

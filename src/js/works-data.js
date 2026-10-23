@@ -23,7 +23,7 @@ export const worksData = [
             id: 'OLAK5uy_mCmDYLMo2C5cmACnR81Y_GFNZ1KYLkO_s' // Add YouTube Music playlist ID
         },
         description: 'Third studio album',
-        coverArt: '/cloth_and_paper_cover.png',
+        coverArt: '/cloth_and_paper_cover.jpg',
         expandedByDefault: false
     },
     {

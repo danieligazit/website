@@ -12,13 +12,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-
-const escapeHtml = (value) =>
-    String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+import { pageMetaTags, withPageMeta } from './page-meta.js';
 
 export function prerenderFragments({ siteUrl, manifestPath }) {
     let outDir;
@@ -54,26 +48,17 @@ export function prerenderFragments({ siteUrl, manifestPath }) {
                 const title = `${video.title} — Daniel Gazit`;
                 const description = video.description || 'A short piece by Daniel Gazit.';
 
-                const tags = `<title>${escapeHtml(title)}</title>
-    <meta name="description" content="${escapeHtml(description)}">
-    <link rel="canonical" href="${escapeHtml(url)}">
-    <meta property="og:site_name" content="Daniel Gazit">
-    <meta property="og:type" content="video.other">
-    <meta property="og:url" content="${escapeHtml(url)}">
-    <meta property="og:title" content="${escapeHtml(title)}">
-    <meta property="og:description" content="${escapeHtml(description)}">
-    <meta property="og:image" content="${escapeHtml(siteUrl + video.poster)}">
-    <meta property="og:video" content="${escapeHtml(siteUrl + video.src)}">
-    <meta property="og:video:type" content="video/mp4">
-    <meta property="og:video:width" content="${video.width}">
-    <meta property="og:video:height" content="${video.height}">
-    <meta name="twitter:card" content="player">
-    <meta name="twitter:title" content="${escapeHtml(title)}">
-    <meta name="twitter:description" content="${escapeHtml(description)}">
-    <meta name="twitter:image" content="${escapeHtml(siteUrl + video.poster)}">`;
+                const tags = pageMetaTags({
+                    url,
+                    title,
+                    description,
+                    image: siteUrl + video.poster,
+                    type: 'video.other',
+                    video: { src: siteUrl + video.src, width: video.width, height: video.height },
+                });
 
-                // Replace the SPA's own <title> so crawlers don't read the generic one first.
-                const html = indexHtml.replace(/<title>[\s\S]*?<\/title>/, tags);
+                // Swap the SPA's default head tags so crawlers don't read the generic ones.
+                const html = withPageMeta(indexHtml, tags);
 
                 const dest = join(outDir, 'fragments', video.id, 'index.html');
                 await mkdir(dirname(dest), { recursive: true });

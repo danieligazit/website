@@ -3,7 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- page-meta: the build swaps this block for each prerendered page (scripts/page-meta.js) -->
     <title>Daniel Gazit | Composer & Creative Technologist</title>
+    <meta name="description" content="Daniel Gazit is a composer and creative technologist: albums, generative audiovisual work and live shows.">
+    <link rel="canonical" href="https://danielgazit.com/">
+    <meta property="og:site_name" content="Daniel Gazit">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://danielgazit.com/">
+    <meta property="og:title" content="Daniel Gazit | Composer &amp; Creative Technologist">
+    <meta property="og:description" content="Daniel Gazit is a composer and creative technologist: albums, generative audiovisual work and live shows.">
+    <meta property="og:image" content="https://danielgazit.com/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Daniel Gazit | Composer &amp; Creative Technologist">
+    <meta name="twitter:description" content="Daniel Gazit is a composer and creative technologist: albums, generative audiovisual work and live shows.">
+    <meta name="twitter:image" content="https://danielgazit.com/og-image.jpg">
+    <!-- /page-meta -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <!-- IBM Plex Mono carries the instrument layer (labels, nav, telemetry); IBM Plex Sans
          carries prose. Same superfamily, so they sit together without a clash. -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -95,6 +114,8 @@
             <li><a id="nav-works" href="/works">Selected Works</a></li>
             <li><a id="nav-live" href="/live">Live</a></li>
             <li><a id="nav-contact" href="/contact">Contact</a></li>
+            <!-- Mobile only: the telemetry corner is hidden there, so Invert moves into the menu -->
+            <li class="nav-invert"><a id="nav-theme-mobile" href="#" role="button">Invert</a></li>
         </ul>
     </nav>
 
