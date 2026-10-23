@@ -388,7 +388,8 @@ elValAperture.innerText = currentAperture.toFixed(2);
 // Router Configuration
 const routes = {
     '/': { mode: 0, showWorks: false, showContact: false, showLive: false, showFragments: false },
-    '/works': { mode: 3, showWorks: true, showContact: false, showLive: false, showFragments: false },
+    '/works': { mode: 3, showWorks: true, showContact: false, showLive: false, showFragments: false, worksFilter: 'all' },
+    '/music': { mode: 3, showWorks: true, showContact: false, showLive: false, showFragments: false, worksFilter: 'released' },
     '/live': { mode: 0, showWorks: false, showContact: false, showLive: true, showFragments: false },
     '/contact': { mode: 0, showWorks: false, showContact: true, showLive: false, showFragments: false },
     '/fragments': { mode: 0, showWorks: false, showContact: false, showLive: false, showFragments: true }
@@ -643,6 +644,36 @@ const closeWorksMobileBtn = document.querySelector('.close-works-mobile');
 
 let currentFilter = 'all';
 let selectedWorkId = null;
+
+// Released Music is Selected Works under the 'released' filter, served at its own path
+// so it can be linked to directly.
+function worksPath() {
+    return currentFilter === 'released' ? '/music' : '/works';
+}
+
+function isWorksPath(path) {
+    return path === '/works' || path === '/music';
+}
+
+// A work counts as released when it's on the streaming services.
+function isReleased(work) {
+    return Boolean(work.spotify || work.appleMusic);
+}
+
+function setWorksFilter(filter) {
+    currentFilter = filter;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === filter);
+    });
+    document.querySelectorAll('.works-sidebar-header h2, .works-header h2').forEach(h => {
+        h.textContent = filter === 'released' ? 'Released Music' : 'Selected Works';
+    });
+}
+
+function updateWorksNavActive() {
+    document.getElementById('nav-works').classList.toggle('active', currentFilter !== 'released');
+    document.getElementById('nav-music').classList.toggle('active', currentFilter === 'released');
+}
 let isDesktopLayout = !isMobileDevice && window.innerWidth > 768;
 
 // Check if we should use desktop layout
@@ -687,7 +718,7 @@ function closeWorksPanel(shouldNavigate = false) {
     }
     
     // Navigate back to home if we're on /works and explicitly requested
-    if (shouldNavigate && window.location.pathname === '/works') {
+    if (shouldNavigate && isWorksPath(window.location.pathname)) {
         navigate('/', true);
     }
 }
@@ -713,7 +744,7 @@ function setAttractor(mode, pushState = true, showWorks = false, showContact = f
         openWorksPanel();
         closeContactPanel();
         closeLivePanel();
-        document.getElementById('nav-works').classList.add('active');
+        updateWorksNavActive();
     } else {
         closeWorksPanel();
     }
@@ -764,7 +795,7 @@ function setAttractor(mode, pushState = true, showWorks = false, showContact = f
             history.pushState({ path }, '', path);
         }
     } else if (showWorks && pushState) {
-        history.pushState({ path: '/works' }, '', '/works');
+        history.pushState({ path: worksPath() }, '', worksPath());
     } else if (showLive && pushState) {
         history.pushState({ path: '/live' }, '', '/live');
     } else if (showContact && pushState) {
@@ -787,6 +818,8 @@ function navigate(path, pushState = true) {
         window.location.href = '/404.html';
         return;
     }
+
+    if (route.worksFilter) setWorksFilter(route.worksFilter);
 
     setAttractor(route.mode, pushState, route.showWorks, route.showContact, route.showLive, route.showFragments, fragmentId);
 
@@ -861,6 +894,11 @@ document.getElementById('nav-works').addEventListener('click', (e) => {
     navigate('/works');
 });
 
+document.getElementById('nav-music').addEventListener('click', (e) => {
+    e.preventDefault();
+    navigate('/music');
+});
+
 document.getElementById('nav-live').addEventListener('click', (e) => {
     e.preventDefault();
     navigate('/live');
@@ -882,7 +920,7 @@ fragments.initFragments({ navigate });
 navigate(window.location.pathname, false);
 
 // Handle work hash on initial load (after a short delay for panel to render)
-if (window.location.hash && window.location.pathname === '/works') {
+if (window.location.hash && isWorksPath(window.location.pathname)) {
     setTimeout(() => {
         handleWorkHash();
     }, 200);
@@ -890,9 +928,11 @@ if (window.location.hash && window.location.pathname === '/works') {
 
 // Render works based on filter
 function renderWorks(filter = 'all') {
-    const filteredWorks = filter === 'all' 
-        ? worksData 
-        : worksData.filter(work => work.tags.includes(filter));
+    const filteredWorks = filter === 'all'
+        ? worksData
+        : filter === 'released'
+            ? worksData.filter(isReleased)
+            : worksData.filter(work => work.tags.includes(filter));
     
     // Month order for sorting (null/undefined goes last)
     const monthOrder = {
@@ -1061,7 +1101,7 @@ function selectWork(workId, pushState = true) {
     
     // Update URL hash (without triggering hashchange again)
     if (pushState && window.location.hash !== `#${workId}`) {
-        history.pushState({ path: '/works', workId }, '', `/works#${workId}`);
+        history.pushState({ path: worksPath(), workId }, '', `${worksPath()}#${workId}`);
     }
 }
 
@@ -1249,13 +1289,13 @@ function toggleWorkItem(item) {
         item.classList.remove('expanded');
         // Clear hash when collapsing
         if (window.location.hash === `#${workId}`) {
-            history.pushState({ path: '/works' }, '', '/works');
+            history.pushState({ path: worksPath() }, '', worksPath());
         }
     } else {
         item.classList.add('expanded');
         // Update URL hash when expanding (mobile)
         if (workId && window.location.hash !== `#${workId}`) {
-            history.pushState({ path: '/works', workId }, '', `/works#${workId}`);
+            history.pushState({ path: worksPath(), workId }, '', `${worksPath()}#${workId}`);
         }
     }
 }
@@ -1548,13 +1588,14 @@ function setupFilterButtons() {
     const allFilterBtns = document.querySelectorAll('.filter-btn');
     allFilterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            currentFilter = btn.dataset.filter;
-            
-            // Update active filter on ALL filter buttons (sync both layouts)
-            allFilterBtns.forEach(b => b.classList.remove('active'));
-            document.querySelectorAll(`.filter-btn[data-filter="${currentFilter}"]`).forEach(b => {
-                b.classList.add('active');
-            });
+            // Sync both layouts' buttons
+            setWorksFilter(btn.dataset.filter);
+
+            // Moving into or out of Released swaps /works and /music
+            if (window.location.pathname !== worksPath()) {
+                history.replaceState({ path: worksPath() }, '', worksPath());
+                updateWorksNavActive();
+            }
             
             // Reset selection when filter changes
             selectedWorkId = null;
