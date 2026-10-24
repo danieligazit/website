@@ -758,6 +758,16 @@ body.light-mode .platform-tab.active {
     margin-bottom: 0;
 }
 
+.contact-invite {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-primary);
+}
+
 .contact-methods {
     display: flex;
     flex-direction: column;

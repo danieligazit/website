@@ -391,6 +391,8 @@ const routes = {
     '/works': { mode: 3, showWorks: true, showContact: false, showLive: false, showFragments: false, worksFilter: 'all' },
     '/music': { mode: 3, showWorks: true, showContact: false, showLive: false, showFragments: false, worksFilter: 'released' },
     '/live': { mode: 0, showWorks: false, showContact: false, showLive: true, showFragments: false },
+    '/about': { mode: 0, showWorks: false, showContact: true, showLive: false, showFragments: false },
+    // The panel was Contact before it carried the bio; old links still open it.
     '/contact': { mode: 0, showWorks: false, showContact: true, showLive: false, showFragments: false },
     '/fragments': { mode: 0, showWorks: false, showContact: false, showLive: false, showFragments: true }
 };
@@ -437,8 +439,8 @@ function closeContactPanel(shouldNavigate = false) {
         document.body.classList.remove('panel-open');
     }
     
-    // Navigate back to home if we're on /contact and explicitly requested
-    if (shouldNavigate && window.location.pathname === '/contact') {
+    // Navigate back to home if we're on /about and explicitly requested
+    if (shouldNavigate && ['/about', '/contact'].includes(window.location.pathname)) {
         navigate('/', true);
     }
 }
@@ -816,7 +818,7 @@ function setAttractor(mode, pushState = true, showWorks = false, showContact = f
     } else if (showLive && pushState) {
         history.pushState({ path: '/live' }, '', '/live');
     } else if (showContact && pushState) {
-        history.pushState({ path: '/contact' }, '', '/contact');
+        history.pushState({ path: '/about' }, '', '/about');
     } else if (showFragments && pushState && !fragmentId) {
         // With a fragmentId the reader pushes /fragments/<slug> itself; a bare grid
         // reveal has to record its own URL.
@@ -923,7 +925,7 @@ document.getElementById('nav-live').addEventListener('click', (e) => {
 
 document.getElementById('nav-contact').addEventListener('click', (e) => {
     e.preventDefault();
-    navigate('/contact');
+    navigate('/about');
 });
 
 document.getElementById('nav-fragments').addEventListener('click', (e) => {

@@ -35,6 +35,14 @@ export default defineConfig({
           imageHeight: 630,
         },
         {
+          path: '/about',
+          title: 'About — Daniel Gazit',
+          description: 'Amsterdam-based composer Daniel Gazit writes music meant to be seen as well as heard. A classically trained pianist and multi-instrumentalist, he has released three studio albums and written scores for contemporary dance.',
+          image: '/og-image.jpg',
+          imageWidth: 1200,
+          imageHeight: 630,
+        },
+        {
           path: '/live',
           title: 'Live — Daniel Gazit',
           description: 'Upcoming and past live shows by Daniel Gazit.',
