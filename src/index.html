@@ -133,31 +133,27 @@
         </div>
     </div>
 
-    <!-- Fragments Panel: fullscreen sequential reader -->
+    <!-- Fragments Panel: one looping player with its notes beside it -->
     <div id="fragments-panel" class="fragments-panel">
         <div class="fragments-backdrop"></div>
+        <button id="close-fragments" aria-label="Close fragment" class="close-btn fragments-close">✕</button>
         <div class="fragments-stage">
-            <div class="fragments-header">
-                <div class="fragments-progress" id="fragments-progress"></div>
-                <button id="close-fragments" aria-label="Close fragment" class="close-btn fragments-close">✕</button>
-            </div>
-
-            <div class="fragments-viewer">
-                <button class="fragments-arrow" id="fragments-prev" aria-label="Previous fragment">‹</button>
+            <div class="fragments-layout">
+                <aside class="fragments-notes">
+                    <div class="fragments-meta" id="fragments-meta">
+                        <!-- Populated by fragments.js -->
+                    </div>
+                    <p class="fragments-description" id="fragments-description"></p>
+                    <div class="fragments-links" id="fragments-links"></div>
+                    <div class="fragments-step">
+                        <button type="button" class="fragments-step-btn" id="fragments-prev" aria-label="Previous fragment">← Prev</button>
+                        <button type="button" class="fragments-step-btn" id="fragments-next" aria-label="Next fragment">Next →</button>
+                    </div>
+                </aside>
                 <div class="fragments-video-wrap">
                     <video id="fragments-video" class="fragments-video" playsinline muted preload="auto"></video>
-                    <span class="fragments-tap-cue fragments-tap-cue-prev" aria-hidden="true">‹</span>
-                    <span class="fragments-tap-cue fragments-tap-cue-next" aria-hidden="true">›</span>
-                    <!-- Overlays the frame rather than joining the layout, so opening it
-                         never changes the size of the video. -->
-                    <div class="fragments-description" id="fragments-description" hidden></div>
                     <button id="fragments-sound" class="fragments-sound">Sound on</button>
                 </div>
-                <button class="fragments-arrow" id="fragments-next" aria-label="Next fragment">›</button>
-            </div>
-
-            <div class="fragments-meta" id="fragments-meta">
-                <!-- Populated by fragments.js -->
             </div>
         </div>
     </div>

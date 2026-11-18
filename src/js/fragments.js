@@ -7,8 +7,8 @@
 //      into view from the landing page, so the particle field recedes as the grid rises.
 //      Touch-drag is not used for that, because the gesture already belongs to the
 //      attractor ("Touch & explore") and one drag cannot mean two things.
-//   2. A fullscreen reader that plays a clip on a loop. Nothing advances on its own —
-//      only an arrow, a tap on the frame's edge, a swipe or a keypress moves on.
+//   2. A single looping player with the clip's notes beside it (below it on mobile).
+//      Nothing advances on its own — only the prev/next links or the arrow keys move on.
 //
 // Nothing heavier than a poster image loads until the visitor acts: preview clips attach
 // their source on first hover, and the full 1080x1920 file only loads on open.
@@ -34,8 +34,6 @@ function formatDate(iso) {
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const canHover = window.matchMedia('(hover: hover)').matches;
-// Matches the breakpoint where the CSS hides the prev/next arrows.
-const compactLayout = window.matchMedia('(max-width: 768px)');
 
 // Wheel distance that takes the grid from hidden to fully revealed.
 const REVEAL_DISTANCE = 480;
@@ -54,9 +52,10 @@ const countEl = document.getElementById('fragments-count');
 const panel = document.getElementById('fragments-panel');
 const backdrop = panel?.querySelector('.fragments-backdrop');
 const video = document.getElementById('fragments-video');
-const progressEl = document.getElementById('fragments-progress');
+const stage = panel?.querySelector('.fragments-stage');
 const metaEl = document.getElementById('fragments-meta');
 const descriptionEl = document.getElementById('fragments-description');
+const linksEl = document.getElementById('fragments-links');
 const soundBtn = document.getElementById('fragments-sound');
 const prevBtn = document.getElementById('fragments-prev');
 const nextBtn = document.getElementById('fragments-next');
@@ -276,80 +275,35 @@ export function setLandingActive(active) {
 // Reader
 // ----------------------------------------
 
-function buildProgress() {
-    if (!progressEl) return;
-    progressEl.innerHTML = fragments
-        .map(() => `<span class="fragments-progress-seg"><i></i></span>`)
-        .join('');
-}
-
-function updateProgress() {
-    if (!progressEl) return;
-    const segs = progressEl.querySelectorAll('.fragments-progress-seg');
-    segs.forEach((seg, i) => {
-        const bar = seg.querySelector('i');
-        // Only the segment being played is accented; the rest read as plain history.
-        seg.classList.toggle('current', i === currentIndex);
-        if (i < currentIndex) bar.style.transform = 'scaleX(1)';
-        else if (i > currentIndex) bar.style.transform = 'scaleX(0)';
-        else {
-            const ratio = video.duration ? video.currentTime / video.duration : 0;
-            bar.style.transform = `scaleX(${ratio})`;
-        }
-    });
-}
-
-// The meta block is deliberately a constant height: date and title only. The description
-// is an overlay opened from the title, so a long one cannot shrink the video. Before this,
-// the frame resized on every navigation (321x570 to 331x586 between two clips) purely
-// because their descriptions wrapped to different numbers of lines.
-function setDescriptionOpen(open) {
-    if (!descriptionEl) return;
-    const hasText = Boolean(descriptionEl.textContent.trim());
-    descriptionEl.hidden = !(open && hasText);
-    descriptionEl.classList.toggle('open', open && hasText);
-    metaEl?.querySelector('.fragments-meta-title')?.setAttribute('aria-expanded', String(open && hasText));
-}
-
 function renderMeta(data) {
-    if (!metaEl) return;
-    const related = data.relatedWork
-        ? `<a class="fragments-meta-link" href="/works#${data.relatedWork}" data-work="${data.relatedWork}">From ${data.relatedWork.replace(/-/g, ' ')} →</a>`
-        : '';
-    const instagram = data.instagram
-        ? `<a class="fragments-meta-link" href="${data.instagram}" target="_blank" rel="noopener noreferrer">Instagram →</a>`
-        : '';
-    const hasDescription = Boolean(data.description);
-
-    metaEl.innerHTML = `
-        <div class="fragments-meta-main">
-            <span class="fragments-meta-date">${formatDate(data.date)}</span>
-            <button type="button" class="fragments-meta-title" aria-expanded="false"
-                    ${hasDescription ? '' : 'data-plain'}>
-                <span>${data.title}</span>
-                ${hasDescription ? '<span class="fragments-meta-more">more</span>' : ''}
-            </button>
-        </div>
-        <div class="fragments-meta-links">
+    if (metaEl) {
+        metaEl.innerHTML = `
             <span class="fragments-meta-index">${String(currentIndex + 1).padStart(2, '0')} / ${String(fragments.length).padStart(2, '0')}</span>
-            ${related}
-            ${instagram}
-        </div>`;
-
-    if (descriptionEl) descriptionEl.textContent = data.description ?? '';
-    setDescriptionOpen(false);
-
-    if (hasDescription) {
-        metaEl.querySelector('.fragments-meta-title')?.addEventListener('click', () => {
-            setDescriptionOpen(descriptionEl.hidden);
-        });
+            <h2 class="fragments-meta-title">${data.title}</h2>
+            <span class="fragments-meta-date">${formatDate(data.date)}</span>`;
     }
 
-    metaEl.querySelector('[data-work]')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        close();
-        onNavigate(`/works#${data.relatedWork}`);
-    });
+    if (descriptionEl) {
+        descriptionEl.textContent = data.description ?? '';
+        descriptionEl.hidden = !data.description;
+    }
+
+    if (linksEl) {
+        const related = data.relatedWork
+            ? `<a class="fragments-meta-link" href="/works#${data.relatedWork}" data-work="${data.relatedWork}">From ${data.relatedWork.replace(/-/g, ' ')} →</a>`
+            : '';
+        const instagram = data.instagram
+            ? `<a class="fragments-meta-link" href="${data.instagram}" target="_blank" rel="noopener noreferrer">Instagram →</a>`
+            : '';
+        linksEl.innerHTML = related + instagram;
+        linksEl.hidden = !(related || instagram);
+
+        linksEl.querySelector('[data-work]')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            close();
+            onNavigate(`/works#${data.relatedWork}`);
+        });
+    }
 }
 
 // Only warm the next clip on a connection that can afford it — these are ~10 MB files.
@@ -391,8 +345,9 @@ function show(index, { replace = true } = {}) {
     });
 
     renderMeta(data);
-    updateProgress();
     updateSoundBtn();
+    // On mobile the notes sit below the frame; a new clip starts back at its top.
+    if (stage) stage.scrollTop = 0;
 
     prevBtn.disabled = index === 0;
     nextBtn.disabled = index === fragments.length - 1;
@@ -404,14 +359,6 @@ function show(index, { replace = true } = {}) {
         if (replace) history.replaceState({ path }, '', path);
         else history.pushState({ path }, '', path);
     }
-}
-
-function flashTapCue(side) {
-    const cue = panel?.querySelector(`.fragments-tap-cue-${side}`);
-    if (!cue) return;
-    cue.classList.remove('flash');
-    void cue.offsetWidth; // restart the animation if taps come quickly
-    cue.classList.add('flash');
 }
 
 function next() {
@@ -475,7 +422,6 @@ export function initFragments({ navigate } = {}) {
     onNavigate = navigate ?? (() => {});
 
     buildGrid();
-    buildProgress();
 
     // The arrow works on every device; the wheel scrub is an addition on top of it.
     gridCloseBtn?.addEventListener('click', () => setRevealed(false, { navigate: true }));
@@ -487,17 +433,8 @@ export function initFragments({ navigate } = {}) {
     nextBtn?.addEventListener('click', next);
     soundBtn?.addEventListener('click', toggleSound);
 
-    video?.addEventListener('timeupdate', updateProgress);
     video?.addEventListener('playing', preloadNext);
-    video?.addEventListener('click', (e) => {
-        // Without the arrows, the frame carries navigation: the outer thirds step between
-        // fragments and the middle pauses, which is the convention for this kind of player.
-        if (compactLayout.matches) {
-            const rect = video.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            if (x < 0.33) { flashTapCue('prev'); return prev(); }
-            if (x > 0.67) { flashTapCue('next'); return next(); }
-        }
+    video?.addEventListener('click', () => {
         video.paused ? video.play() : video.pause();
     });
 
@@ -514,20 +451,6 @@ export function initFragments({ navigate } = {}) {
         } else if (isRevealed && e.key === 'Escape') {
             setRevealed(false, { navigate: true });
         }
-    });
-
-    // Swipe between clips inside the reader.
-    let touchStartX = 0;
-    let touchStartY = 0;
-    panel?.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].clientX;
-        touchStartY = e.changedTouches[0].clientY;
-    }, { passive: true });
-    panel?.addEventListener('touchend', (e) => {
-        const dx = e.changedTouches[0].clientX - touchStartX;
-        const dy = e.changedTouches[0].clientY - touchStartY;
-        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
-        dx < 0 ? next() : prev();
     });
 
     // Don't keep decoding video in a hidden tab.
