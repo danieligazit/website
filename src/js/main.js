@@ -5,11 +5,8 @@ import { showsData } from './shows-data.js';
 import { videosData } from './videos-data.js';
 import * as fragments from './fragments.js';
 
-// Configuration
-const WIDTH = 1000;
-const PARTICLES = WIDTH * WIDTH;
+// Configuration (the simulation grid size depends on the GPU, so it is set below the renderer)
 const SUB_PARTICLES = 8;
-const TOTAL_POINTS = PARTICLES * SUB_PARTICLES;
 const SPHERE_RADIUS = 300.0;
 
 // Detect if device is mobile/tablet (needed early for shader setup)
@@ -21,7 +18,7 @@ let frameCount = 0;
 let lastFpsCheck = performance.now();
 let lastFrameTime = performance.now();
 let currentFps = 60;
-let performanceLevel = 1.0; // 1.0 = full quality, reduces if performance is poor
+let performanceLevel = 1.0; // share of particles drawn; 1.0 = all of them
 let performanceCheckDelay = 2000; // Wait 2 seconds before first check
 
 // Scene Setup
@@ -39,7 +36,61 @@ camera.position.set(0, 0, 0.1);
 
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+// ----------------------------------------
+// Quality tiers
+// ----------------------------------------
+//
+// A capable GPU gets exactly the full-quality field: the 1000x1000 grid at up to 2x pixel
+// density, every particle drawn. Weaker hardware is recognised up front from the renderer
+// string, so it starts at a level it can hold instead of stuttering for seconds while the
+// frame-rate controller below works its way down.
+//
+//   full        discrete GPUs, Apple silicon, anything unrecognised. Unchanged.
+//   integrated  Intel integrated graphics. Same grid, so a capable one can climb back to
+//               full quality; it just starts lower.
+//   software    WebGL running on the CPU (hardware acceleration off, or a blocklisted
+//               driver). A smaller grid, since the simulation pass alone would swamp it.
+//
+// ?quality=full|integrated|software forces a tier, for testing.
+function detectGpuTier() {
+    const forced = new URLSearchParams(window.location.search).get('quality');
+    if (['full', 'integrated', 'software'].includes(forced)) return forced;
+
+    let name = '';
+    try {
+        const gl = renderer.getContext();
+        const info = gl.getExtension('WEBGL_debug_renderer_info');
+        name = String(gl.getParameter(info ? info.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+    } catch {
+        return 'full';
+    }
+    if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(name)) return 'software';
+    // Intel Arc is a discrete card and belongs in the full tier.
+    if (/intel/i.test(name) && !/\barc\b/i.test(name)) return 'integrated';
+    return 'full';
+}
+
+const gpuTier = detectGpuTier();
+
+const WIDTH = gpuTier === 'software' ? 500 : 1000;
+const TOTAL_POINTS = WIDTH * WIDTH * SUB_PARTICLES;
+
+// Pixel-density steps, highest first. The first is what the screen asks for (capped at
+// 2x, as before); the controller only steps down when the frame rate leaves no choice.
+const basePixelRatio = Math.min(window.devicePixelRatio, 2);
+const pixelRatioSteps = [...new Set([basePixelRatio, 1.5, 1, 0.75, ...(gpuTier === 'software' ? [0.5] : [])]
+    .filter((r) => r <= basePixelRatio))];
+
+const TIER_START = {
+    full:       { level: 1.0, ratio: basePixelRatio },
+    integrated: { level: 0.6, ratio: 1 },
+    software:   { level: 0.5, ratio: 0.75 },
+}[gpuTier];
+
+performanceLevel = TIER_START.level;
+let pixelRatioIndex = Math.max(0, pixelRatioSteps.findIndex((r) => r <= TIER_START.ratio));
+renderer.setPixelRatio(pixelRatioSteps[pixelRatioIndex]);
 container.appendChild(renderer.domElement);
 
 // GPGPU Setup
@@ -64,8 +115,10 @@ const computeShaderPosition = `
         float z = tmpPos.z;
         float w = tmpPos.w;
 
-        // Use actual delta time, clamped to reasonable values
-        float dt = clamp(uDeltaTime, 0.001, 0.1);
+        // Use actual delta time, clamped to reasonable values. The ceiling only matters below
+        // ~50fps (a 60fps frame is 0.083 here); it is high enough that a slow machine, or one
+        // stepping the simulation every other frame, still moves at the same speed.
+        float dt = clamp(uDeltaTime, 0.001, 0.25);
         
         // Params for attractors
         float a = 1.2; float b = 0.19;
@@ -180,6 +233,7 @@ for (let j = 0; j < WIDTH; j++) {
 visualGeometry.setAttribute('position', new THREE.BufferAttribute(initialPositions, 3));
 visualGeometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
 visualGeometry.setAttribute('aScatter', new THREE.BufferAttribute(scatters, 3));
+visualGeometry.setDrawRange(0, Math.floor(TOTAL_POINTS * performanceLevel));
 
 const visualMaterial = new THREE.ShaderMaterial({
     uniforms: {
@@ -191,7 +245,10 @@ const visualMaterial = new THREE.ShaderMaterial({
         uMode: { value: 0 },
         uLightMode: { value: 0.0 }, // 0 = dark, 1 = light
         uHueShift: { value: 0.0 }, // Color shift -1.0 to 1.0
-        uIsMobile: { value: isMobileDevice ? 1.0 : 0.0 } // Mobile device flag
+        uIsMobile: { value: isMobileDevice ? 1.0 : 0.0 }, // Mobile device flag
+        // Current pixel ratio over the screen's own. Points are sized in canvas pixels, so
+        // without this they would grow on screen whenever the resolution is stepped down.
+        uSizeScale: { value: pixelRatioSteps[pixelRatioIndex] / basePixelRatio }
     },
     vertexShader: `
         uniform sampler2D texturePosition;
@@ -200,7 +257,8 @@ const visualMaterial = new THREE.ShaderMaterial({
         uniform float uAperture;
         uniform int uMode;
         uniform float uIsMobile;
-        
+        uniform float uSizeScale;
+
         attribute vec3 aScatter;
         
         varying float vDist;
@@ -248,7 +306,10 @@ const visualMaterial = new THREE.ShaderMaterial({
             float baseSize = 1.0 + (aScatter.z * 2.0);
             // Reduce particle size on mobile (0.7x scale)
             float mobileScale = mix(1.0, 0.7, uIsMobile);
-            gl_PointSize = (baseSize + blurRadius * 1.5) * ( 500.0 / distToCamera ) * mobileScale;
+            float pointSize = (baseSize + blurRadius * 1.5) * ( 500.0 / distToCamera ) * mobileScale;
+            // At reduced resolution, shrink to match, but not below a pixel, where points
+            // would drop out entirely. At full resolution uSizeScale is 1 and this is a no-op.
+            gl_PointSize = max(pointSize * uSizeScale, min(pointSize, 1.0));
         }
     `,
     fragmentShader: `
@@ -1778,64 +1839,182 @@ function updateParticleCount() {
     visualGeometry.setDrawRange(0, targetCount);
 }
 
+// ----------------------------------------
+// Frame-rate controller
+// ----------------------------------------
+//
+// Quality only ever goes down. Once the machine has shown it can't hold the frame rate,
+// the reduced level is kept for the rest of the visit rather than retried, so the field
+// doesn't visibly thin and fill back in. A machine that holds 60fps never loses anything,
+// so it renders exactly as before.
+//
+// The one exception is a tier that starts below full (Intel graphics, software): until its
+// first slow reading it climbs, since it may well be capable. The first slow reading ends
+// that for good, back at the last level it held.
+//
+// Knobs, given up one per step in this order:
+//   1. particles drawn, down to half
+//   2. pixel density, a step at a time
+//   3. particles drawn, down to the floor
+//   4. how often the simulation steps: every frame, then every 2nd / 3rd
+// The first step needs two slow readings in a row (two seconds), so a single hitch — a
+// page opening, a garbage-collection pause — doesn't cost anything; after that, every
+// slow second cuts again until it's fast enough.
+const FPS_SLOW = 50;    // below this, give something up
+const FPS_STEADY = 57;  // at or above this, a starting-low tier keeps climbing
+const MIN_LEVEL = isMobileDevice ? 0.5 : 0.1;
+
+let computeEvery = 1;       // step the simulation every Nth frame
+let slowChecks = 0;
+let climbing = performanceLevel < 1.0 || pixelRatioIndex > 0;
+let lastGoodLevel = performanceLevel;
+let lastGoodRatioIndex = pixelRatioIndex;
+let steadyChecks = 0;
+
+function setPixelRatioStep(index) {
+    pixelRatioIndex = index;
+    const ratio = pixelRatioSteps[index];
+    renderer.setPixelRatio(ratio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    visualMaterial.uniforms.uSizeScale.value = ratio / basePixelRatio;
+}
+
+function adjustQuality(fps) {
+    if (fps < FPS_SLOW) {
+        steadyChecks = 0;
+
+        // A starting-low tier that hits its limit while climbing: go back to the last
+        // level it held and stay there. No waiting for a second reading — it was fine a
+        // moment ago, so the last step is the cause.
+        if (climbing) {
+            climbing = false;
+            slowChecks = 0;
+            performanceLevel = lastGoodLevel;
+            updateParticleCount();
+            if (pixelRatioIndex !== lastGoodRatioIndex) setPixelRatioStep(lastGoodRatioIndex);
+            return;
+        }
+
+        // The first cut waits for a second slow reading, so a single hitch costs nothing.
+        // Once a slowdown is confirmed, each further slow reading cuts straight away.
+        if (++slowChecks < 2) return;
+
+        // Cut in proportion to the shortfall, a bit under what it naively suggests so it
+        // doesn't overshoot (nothing given up comes back): 45fps → about 18% less.
+        // At least 5%, at most 20% at once.
+        const cut = Math.min(0.2, Math.max(0.05, performanceLevel * (1 - fps / 60) * 0.7));
+
+        if (performanceLevel > 0.5) {
+            performanceLevel = Math.max(0.5, performanceLevel - cut);
+            updateParticleCount();
+        } else if (pixelRatioIndex < pixelRatioSteps.length - 1) {
+            setPixelRatioStep(pixelRatioIndex + 1);
+        } else if (performanceLevel > MIN_LEVEL) {
+            performanceLevel = Math.max(MIN_LEVEL, performanceLevel - cut);
+            updateParticleCount();
+        } else if (computeEvery < 3) {
+            computeEvery++;
+        }
+        return;
+    }
+
+    slowChecks = 0;
+    if (!climbing || fps < FPS_STEADY) return;
+
+    // Still climbing: particles first, then resolution once they're all back, with a few
+    // steady seconds between resolution steps since each is a big jump in cost.
+    lastGoodLevel = performanceLevel;
+    lastGoodRatioIndex = pixelRatioIndex;
+    steadyChecks++;
+
+    if (performanceLevel < 1.0) {
+        // Above 60 (a high-refresh screen) climbs in proportion; at 60 a small fixed
+        // step, since the reading can't go higher.
+        const step = Math.max(0.03, (fps - 60) * 0.005 * 0.15);
+        performanceLevel = Math.min(1.0, performanceLevel + step);
+        updateParticleCount();
+    } else if (pixelRatioIndex > 0) {
+        if (steadyChecks >= 3) {
+            setPixelRatioStep(pixelRatioIndex - 1);
+            steadyChecks = 0;
+        }
+    } else {
+        climbing = false; // back to full quality; from here it can only go down
+    }
+}
+
+// Debug readout: __quality() in the console.
+window.__quality = () => ({
+    tier: gpuTier,
+    grid: WIDTH,
+    fps: Math.round(currentFps),
+    particles: `${(performanceLevel * 100).toFixed(1)}%`,
+    climbing,
+    pixelRatio: pixelRatioSteps[pixelRatioIndex],
+    computeEvery,
+});
+
+// The simulation only changes state while it is moving: at speed zero a pass leaves every
+// particle where it was (bar a one-off respawn of strays after an attractor change). So
+// once the field has settled, steps are skipped entirely until it moves again.
+let settledPasses = 0;
+let lastComputedMode = null;
+let framesSinceCompute = 0;
+let pendingDelta = 0;
+
+
+// Videos currently playing anywhere on the page (work videos, fragment previews). Media
+// events don't bubble, so listen in the capture phase.
+const playingVideos = new Set();
+document.addEventListener('playing', (e) => {
+    if (e.target instanceof HTMLVideoElement) playingVideos.add(e.target);
+}, true);
+['pause', 'ended', 'emptied'].forEach((type) => document.addEventListener(type, (e) => {
+    playingVideos.delete(e.target);
+}, true));
+function isVideoPlaying() {
+    for (const v of playingVideos) {
+        if (!v.isConnected || v.paused) playingVideos.delete(v);
+    }
+    return playingVideos.size > 0;
+}
 
 // Animation Loop
 const animate = () => {
     requestAnimationFrame(animate);
 
-    // The fragments reader covers the canvas with a near-opaque backdrop, so idle the
-    // particle simulation while a video is playing rather than competing with it for GPU.
-    if (fragments.isFragmentsOpen() || fragments.isGridRevealed()) {
+    // While a fragment is open or any video plays, freeze the field entirely — no
+    // simulation step and no redraw, the canvas just keeps its last frame — so the video
+    // gets the whole GPU.
+    if (fragments.isFragmentsOpen() || fragments.isGridRevealed() || isVideoPlaying()) {
         lastFrameTime = performance.now();
         return;
     }
 
     const now = performance.now();
-    
+    const frameGap = now - lastFrameTime;
+
     // Calculate delta time (in seconds) - time since last frame
-    const deltaTime = Math.min((now - lastFrameTime) / 1000, 0.1); // Cap at 100ms to prevent huge jumps
+    const deltaTime = Math.min(frameGap / 1000, 0.1); // Cap at 100ms to prevent huge jumps
     lastFrameTime = now;
-    
+
     // FPS Monitoring and Performance Adjustment
+    // A long gap means the loop was paused (hidden tab, the fragments overlay), not slow:
+    // start the measurement over rather than reading the pause as a terrible frame rate.
+    if (frameGap > 250) {
+        frameCount = 0;
+        lastFpsCheck = now;
+    }
     frameCount++;
     const timeSinceLastCheck = now - lastFpsCheck;
-    
+
     if (timeSinceLastCheck >= 1000 && now > performanceCheckDelay) {
         currentFps = (frameCount / timeSinceLastCheck) * 1000;
         frameCount = 0;
         lastFpsCheck = now;
-        
-        // Elegant proportional performance adjustment
-        // Target 60 FPS as baseline (works for most displays)
-        // With delta time, simulation speed is now frame-independent
-        const TARGET_FPS = 60;
-        // Mobile devices: be more generous with minimum particles
-        const MIN_PERFORMANCE = isMobileDevice ? 0.5 : 0.25; // Mobile keeps at least 50% particles
-        const MAX_PERFORMANCE = 1.0;
-        
-        // Calculate how far we are from target (negative = below target, positive = above target)
-        const fpsError = currentFps - TARGET_FPS;
-        
-        // Proportional adjustment: larger error = larger adjustment
-        // Increased from 0.002 to 0.005 for more aggressive adjustment
-        let adjustment = fpsError * 0.005;
-        
-        // Asymmetric adjustment: Fast to reduce, slow to increase (more gradual particle addition)
-        if (adjustment > 0) {
-            adjustment *= 0.15; // Only increase at 15% speed to avoid sudden particle spawning
-        }
-        
-        // Apply adjustment (negative error reduces performance, positive error increases it)
-        const newPerformanceLevel = Math.max(MIN_PERFORMANCE, Math.min(MAX_PERFORMANCE, performanceLevel + adjustment));
-        
-        // Only update if there's a meaningful change (avoid micro-adjustments)
-        if (Math.abs(newPerformanceLevel - performanceLevel) > 0.001) {
-            performanceLevel = newPerformanceLevel;
-            updateParticleCount();
-            const direction = adjustment > 0 ? 'Increasing' : 'Reducing';
-        }
+        adjustQuality(currentFps);
     }
-    
+
     if (now - lastInteractionTime > 200) isInteracting = false;
 
     const targetSimSpeed = isInteracting ? 1.0 : 0.0;
@@ -1850,16 +2029,33 @@ const animate = () => {
     currentAperture += (targetAperture - currentAperture) * paramLerpFactor;
     currentHueShift += (targetHueShift - currentHueShift) * paramLerpFactor;
 
-    positionVariable.material.uniforms.uTime.value = now * 0.001;
-    positionVariable.material.uniforms.uSpeed.value = currentSimSpeed;
-    positionVariable.material.uniforms.uDeltaTime.value = deltaTime * 5.0; // x speed multiplier
-    
     visualMaterial.uniforms.uFocus.value = currentFocus;
     visualMaterial.uniforms.uAperture.value = currentAperture;
     visualMaterial.uniforms.uHueShift.value = currentHueShift;
     visualMaterial.uniforms.uTime.value = now * 0.001;
 
-    gpuCompute.compute();
+    // Step the simulation: every frame normally, every Nth when the controller has had to
+    // thin it out (carrying the skipped time so the motion keeps its speed), and not at
+    // all once the field is at rest.
+    const mode = positionVariable.material.uniforms.uMode.value;
+    if (currentSimSpeed > 0 || mode !== lastComputedMode) settledPasses = 0;
+    pendingDelta += deltaTime;
+    framesSinceCompute++;
+
+    if (settledPasses < 2 && framesSinceCompute >= computeEvery) {
+        positionVariable.material.uniforms.uTime.value = now * 0.001;
+        positionVariable.material.uniforms.uSpeed.value = currentSimSpeed;
+        positionVariable.material.uniforms.uDeltaTime.value = pendingDelta * 5.0; // x speed multiplier
+        gpuCompute.compute();
+        lastComputedMode = mode;
+        if (currentSimSpeed === 0) settledPasses++;
+        framesSinceCompute = 0;
+        pendingDelta = 0;
+    } else if (settledPasses >= 2) {
+        // At rest, nothing accumulates: the next movement starts from a single frame.
+        framesSinceCompute = 0;
+        pendingDelta = 0;
+    }
 
     visualMaterial.uniforms.texturePosition.value = gpuCompute.getCurrentRenderTarget(positionVariable).texture;
 
