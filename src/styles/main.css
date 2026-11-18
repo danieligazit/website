@@ -1708,11 +1708,6 @@ a.show-venue:hover {
         line-height: 1.2;
     }
     
-    /* Hide technical data on mobile to prevent overflow */
-    .data-display .data-tech {
-        display: none;
-    }
-    
     /* Move navigation below logo on mobile to prevent overlap */
     .logo-area {
         top: 1rem;
@@ -1769,6 +1764,67 @@ a.show-venue:hover {
     transition: color 0.3s ease;
 }
 
+.work-video {
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-primary);
+    background: #000;
+}
+
+.work-video video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+}
+
+/* Video and photo side by side. flex-grow is each item's width-to-height ratio and the
+   basis is zero, so the free width splits in proportion and both end up the same height. */
+.works-detail-content:has(.work-media-pair) {
+    container-type: inline-size;
+}
+
+.work-media-pair {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.work-media-pair .work-video {
+    flex: 1.7778 1 0;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.work-media-photo {
+    flex: var(--ratio, 0.6667) 1 0;
+    min-width: 0;
+    border: 1px solid var(--border-primary);
+}
+
+.work-media-photo img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* Too narrow to read either at half width: stack them, the photo capped like a lone one. */
+@container (max-width: 640px) {
+    .work-media-pair {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .work-media-pair .work-video { flex: none; width: 100%; }
+
+    .work-media-photo { flex: none; max-width: 100%; }
+
+    .work-media-photo img {
+        width: auto;
+        max-width: 100%;
+        max-height: 85vh;
+    }
+}
+
 .performance-gallery {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1794,7 +1850,20 @@ body.light-mode .performance-image {
     transition: transform 0.3s ease;
 }
 
-/* Remove the object-position override - not needed anymore */
+/* A single photo is shown whole rather than squeezed into one of two columns: the full
+   width of the pane, capped by height so a portrait shot stays in view at once. */
+.performance-image:only-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+    width: auto;
+    max-width: 100%;
+}
+
+.performance-image:only-child img {
+    width: auto;
+    max-width: 100%;
+    max-height: 85vh;
+}
 
 .performance-image:hover img {
     transform: scale(1.02);
@@ -2377,33 +2446,6 @@ nav a:hover { color: var(--accent); }
 :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
-}
-
-/* --- Telemetry: what responds to the visitor, and what is only about the machine. --- */
-.data-diagnostics {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    transition: max-height 0.35s ease, opacity 0.35s ease;
-}
-
-.data-display:hover .data-diagnostics,
-.data-display:focus-within .data-diagnostics {
-    max-height: 6rem;
-    opacity: 1;
-}
-
-.data-diagnostics-toggle {
-    color: var(--text-quaternary);
-    cursor: default;
-    user-select: none;
-}
-
-/* A value that just moved brightens briefly, so the link between the cursor and the
-   readout is visible rather than something you have to work out. */
-.value.changed {
-    color: var(--accent);
-    transition: none;
 }
 
 .value {

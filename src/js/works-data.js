@@ -197,6 +197,41 @@ export const worksData = [
         ],
         coverArt: '/rit-to-all-daniel-1.jpg',
         expandedByDefault: false
+    },
+    {
+        id: 'proximare-ade',
+        title: 'Proximare — Live AV Performance',
+        year: 2026,
+        month: 'October',
+        type: 'performance',
+        tags: ['collaboration', 'performance', 'audiovisual'],
+        description: 'A live audiovisual performance in dialogue with Proximare, a light installation by Lumus Instruments. Amsterdam Dance Event, Felix Meritis.',
+        longDescription: 'Through live keyboard performance and layered polyrhythmic structures, the performance explores the relationship between sound and visual architecture. Across three sections it shifts from direct audio-reactivity to independent contrapuntal movement, chance operations and spatial translation, creating an evolving interplay between sound, light and space. Performed October 23rd 2026 in the Concertzaal of Felix Meritis, Amsterdam, as part of <a href="https://www.amsterdam-dance-event.nl/en/program/2026/lumus-immersive-experiences/2829976/" target="_blank" rel="noopener noreferrer">Amsterdam Dance Event</a>.',
+        // Self-hosted documentation; swap src/poster when the official ADE footage arrives.
+        video: {
+            src: '/videos/proximare-ade-2026.mp4',
+            poster: '/videos/proximare-ade-2026.poster.webp'
+        },
+        performanceImages: [
+            '/proximare.jpg'
+        ],
+        coverArt: '/proximare.jpg',
+        expandedByDefault: false
+    },
+    {
+        id: 'hov2-belcampo',
+        title: 'HOV2+ — Live AV Performance',
+        year: 2026,
+        month: 'November',
+        type: 'performance',
+        tags: ['performance', 'audiovisual'],
+        description: 'Performed November 7th 2026 at Belcampo de Hallen, Amsterdam.',
+        video: {
+            src: '/videos/hov2-belcampo.mp4',
+            poster: '/videos/hov2-belcampo.poster.webp'
+        },
+        coverArt: '/hov2-belcampo.jpg',
+        expandedByDefault: false
     }
 ];
  

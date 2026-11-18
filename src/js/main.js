@@ -374,15 +374,6 @@ let currentFocus = 300.0;
 let currentAperture = 3.5;
 let currentHueShift = 0.0;
 
-// UI Elements
-const elValFocus = document.getElementById('val-focus');
-const elValAperture = document.getElementById('val-aperture');
-const elValStatus = document.getElementById('val-status');
-const elValFps = document.getElementById('val-fps');
-const elValPoints = document.getElementById('val-points');
-const elValQuality = document.getElementById('val-quality');
-
-elValAperture.innerText = currentAperture.toFixed(2);
 
 // Add mobile tilt debug display (only on mobile) - insert before the invert reality button
 // Router Configuration
@@ -1163,7 +1154,7 @@ function renderWorkDetail(work) {
     const typeLabel = work.type.charAt(0).toUpperCase() + work.type.slice(1);
     
     const isAVWork = work.type === 'audiovisual';
-    const isPerformance = work.performanceImages && work.performanceImages.length > 0;
+    const isPerformance = hasPerformanceMedia(work);
     const isMusicWork = work.spotify || work.appleMusic?.id;
     
     if (isMusicWork) {
@@ -1195,7 +1186,20 @@ function renderWorkDetail(work) {
     `;
     
     worksDetailContent.innerHTML = html;
-    
+
+    // Each side of a video/photo pair grows in proportion to its aspect ratio, which is
+    // what makes them come out the same height. The photo's ratio is only known once it
+    // has loaded; until then the CSS assumes a 2:3 portrait.
+    const pairPhoto = worksDetailContent.querySelector('.work-media-photo img');
+    if (pairPhoto) {
+        const setRatio = () => {
+            if (pairPhoto.naturalHeight) {
+                pairPhoto.parentElement.style.setProperty('--ratio', pairPhoto.naturalWidth / pairPhoto.naturalHeight);
+            }
+        };
+        pairPhoto.complete ? setRatio() : pairPhoto.addEventListener('load', setRatio, { once: true });
+    }
+
     // Add event listeners to platform tabs
     worksDetailContent.querySelectorAll('.platform-tab').forEach(tab => {
         tab.addEventListener('click', (e) => {
@@ -1331,6 +1335,21 @@ function renderDetailContent(work, isMusicWork, isAVWork, isPerformance) {
         `;
     }
     
+    // A video with a single photo: the two side by side, the same height.
+    if (work.video?.src && work.performanceImages?.length === 1) {
+        content += `
+            <div class="work-media-pair">
+                ${workVideoHTML(work)}
+                <div class="work-media-photo">
+                    <img src="${work.performanceImages[0]}" alt="${work.title} performance">
+                </div>
+            </div>
+        `;
+        return content;
+    }
+
+    content += workVideoHTML(work);
+
     // Performance gallery
     if (isPerformance && work.performanceImages) {
         content += `
@@ -1345,6 +1364,23 @@ function renderDetailContent(work, isMusicWork, isAVWork, isPerformance) {
     }
     
     return content;
+}
+
+// Self-hosted documentation video. preload="none" so only the poster loads until the
+// visitor presses play — these are ~20 MB files.
+function workVideoHTML(work) {
+    if (!work.video?.src) return '';
+    return `
+        <div class="work-video">
+            <video src="${work.video.src}" ${work.video.poster ? `poster="${work.video.poster}"` : ''}
+                   controls playsinline preload="none"></video>
+        </div>
+    `;
+}
+
+// A performance is anything documented with photos or a video of its own.
+function hasPerformanceMedia(work) {
+    return work.performanceImages?.length > 0 || Boolean(work.video?.src);
 }
 
 // Setup scroll spy for nav (scroll in detail panel could trigger nav updates)
@@ -1379,7 +1415,7 @@ function createWorkHTML(work) {
     
     // Determine work type
     const isAVWork = work.type === 'audiovisual';
-    const isPerformance = work.performanceImages && work.performanceImages.length > 0;
+    const isPerformance = hasPerformanceMedia(work);
     const isMusicWork = work.spotify || work.appleMusic?.id;
     
     if (isPerformance && !isMusicWork) {
@@ -1509,6 +1545,7 @@ function createPerformanceWorkHTML(work, monthText, typeLabel) {
                             ${work.longDescription}
                         </div>
                     ` : ''}
+                    ${workVideoHTML(work)}
                     ${work.performanceImages && work.performanceImages.length > 0 ? `
                         <div class="performance-gallery">
                             ${work.performanceImages.map(img => `
@@ -1741,15 +1778,6 @@ function updateParticleCount() {
     visualGeometry.setDrawRange(0, targetCount);
 }
 
-// Writes a readout and briefly marks it as changed, so the value visibly reacts.
-const readoutTimers = new WeakMap();
-function setReadout(el, text) {
-    if (el.innerText === text) return;
-    el.innerText = text;
-    el.classList.add('changed');
-    clearTimeout(readoutTimers.get(el));
-    readoutTimers.set(el, setTimeout(() => el.classList.remove('changed'), 90));
-}
 
 // Animation Loop
 const animate = () => {
@@ -1821,31 +1849,6 @@ const animate = () => {
     currentFocus += (targetFocus - currentFocus) * paramLerpFactor;
     currentAperture += (targetAperture - currentAperture) * paramLerpFactor;
     currentHueShift += (targetHueShift - currentHueShift) * paramLerpFactor;
-
-    // Update UI displays. FOCUS and APERTURE are the live shader uniforms the cursor
-    // drives, so flash them as they move — otherwise nobody discovers that the readout is
-    // reacting to them, and honest instrumentation reads as decoration.
-    if (elValFocus) setReadout(elValFocus, currentFocus.toFixed(0));
-    if (elValAperture) setReadout(elValAperture, currentAperture.toFixed(1));
-    if (elValFps) elValFps.innerText = currentFps.toFixed(0);
-    
-    const currentPointCount = Math.floor(TOTAL_POINTS * performanceLevel);
-    if (elValPoints) {
-        const pointsInMillions = (currentPointCount / 1000000).toFixed(2);
-        elValPoints.innerText = `${pointsInMillions}M`;
-    }
-    if (elValQuality) elValQuality.innerText = `${(performanceLevel * 100).toFixed(0)}%`;
-    
-    if (elValStatus) {
-        const isLightMode = document.body.classList.contains('light-mode');
-        if (currentSimSpeed > 0.1) {
-            elValStatus.innerText = "ACTIVE";
-            elValStatus.style.color = isLightMode ? "#000000" : "#ffffff";
-        } else {
-            elValStatus.innerText = "DORMANT";
-            elValStatus.style.color = "#666666";
-        }
-    }
 
     positionVariable.material.uniforms.uTime.value = now * 0.001;
     positionVariable.material.uniforms.uSpeed.value = currentSimSpeed;
